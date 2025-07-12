@@ -1,0 +1,19 @@
+{
+    "folders": [
+        {
+            "path": "."
+        },
+        {
+            "name": "frontend",
+            "path": "./frontend"
+        },
+        {
+            "name": "api server",
+            "path": "./backend/api"
+        },
+        {
+            "name": "ssh server",
+            "path": "./backend/ssh"
+        }
+    ]
+}
