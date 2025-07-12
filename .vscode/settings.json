@@ -8,6 +8,7 @@
     "[go]": {
         "editor.defaultFormatter": "golang.go"
     },
+    "prettier.tabWidth": 4,
     "[yaml]":{
         "editor.defaultFormatter": "esbenp.prettier-vscode",
         "editor.insertSpaces": true,
