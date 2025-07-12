@@ -9,18 +9,26 @@ services:
             - "8000:8000"
         networks:
             - internal
+        depends_on:
+            database:
+                condition: service_healthy
 
     database:
-        image: mysql:8.0
+        image: postgres:17
         environment:
-            MYSQL_USER: "${MYSQL_USER}"
-            MYSQL_PASSWORD: "${MYSQL_PASSWORD}"
-            MYSQL_DATABASE: "${MYSQL_DB}"
-            MYSQL_ROOT_PASSWORD: root
+            POSTGRES_USER: "${DB_USER}"
+            POSTGRES_PASSWORD: "${DB_PASSWORD}"
+            POSTGRES_DATABASE: "${DB_NAME}"
+            POSTGRES_ROOT_PASSWORD: root
         ports:
-            - "${MYSQL_PORT}:${MYSQL_PORT}"
+            - "${DB_PORT}:${DB_PORT}"
         networks:
             - internal
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U gityard -d gityard"]
+            interval: 5s
+            timeout: 5s
+            retries: 5
 
 networks:
     internal:
