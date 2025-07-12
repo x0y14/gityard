@@ -2,6 +2,7 @@
     // インデントの設定
     "editor.tabSize": 4,
     "editor.insertSpaces": true,
+    "editor.detectIndentation": false,
     // フォーマッタの設定
     "editor.formatOnSave": true,
     "[go]": {
