@@ -4,4 +4,7 @@
     "editor.insertSpaces": true,
     // フォーマッタの設定
     "editor.formatOnSave": true,
+    "[go]": {
+        "editor.defaultFormatter": "golang.go"
+    },
 }
