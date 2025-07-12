@@ -1,0 +1,7 @@
+{
+    // インデントの設定
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true,
+    // フォーマッタの設定
+    "editor.formatOnSave": true,
+}
