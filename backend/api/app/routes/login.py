@@ -3,12 +3,13 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Response
 from fastapi.security import OAuth2PasswordRequestForm
+from pydantic import BaseModel, ConfigDict
 
 from app import crud
 from app.core import security
 from app.core.config import settings
-from app.deps import CurrentUserFromCookie, SessionDep
-from app.models.token import LongTermTokenCreate, ShortTermToken
+from app.deps import CurrentUserFromAuthHeader, CurrentUserFromCookie, SessionDep
+from app.models.token import LongTermTokenCreate, LongTermTokenDelete, ShortTermToken
 
 router = APIRouter(tags=["login"])
 
@@ -77,3 +78,24 @@ def refresh_access_token(
             current_user.id, expires_delta=access_token_expires
         )
     )
+
+
+class LogoutResponse(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+
+@router.post("/logout", response_model=LogoutResponse, status_code=200)
+def logout(
+    session: SessionDep,
+    current_user: CurrentUserFromAuthHeader,
+    response: Response,
+):
+    # DBからトークンを消す
+    crud.delete_long_term_token(
+        session=session,
+        long_term_token_delete=LongTermTokenDelete(user_id=current_user.id),
+    )
+    # Cookieからも消す
+    response.delete_cookie("refresh_token")
+
+    return LogoutResponse()

@@ -33,3 +33,7 @@ class LongTermTokenCreate(SQLModel):
 
 class LongTermTokenCreated(LongTermToken):
     expires: timedelta
+
+
+class LongTermTokenDelete(SQLModel):
+    user_id: uuid.UUID

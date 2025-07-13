@@ -6,7 +6,12 @@ from sqlmodel import Session, select
 from app.core import security
 from app.core.config import settings
 from app.core.security import get_password_hash, verify_password
-from app.models.token import LongTermToken, LongTermTokenCreate, LongTermTokenCreated
+from app.models.token import (
+    LongTermToken,
+    LongTermTokenCreate,
+    LongTermTokenCreated,
+    LongTermTokenDelete,
+)
 from app.models.user import User, UserCreate
 
 
@@ -80,3 +85,16 @@ def update_long_term_token(
     return LongTermTokenCreated.model_validate(
         session_long_term_token, update={"expires": refresh_token_expires}
     )
+
+
+def delete_long_term_token(
+    *, session: Session, long_term_token_delete: LongTermTokenDelete
+) -> bool:
+    session_long_term_token = get_long_term_token(
+        session=session, user_id=long_term_token_delete.user_id
+    )
+    if session_long_term_token:
+        session.delete(session_long_term_token)
+        session.commit()
+        return True
+    return False
