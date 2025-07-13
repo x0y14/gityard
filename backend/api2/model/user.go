@@ -14,7 +14,7 @@ type User struct {
 
 	// リレーションシップ
 	UserCredential    UserCredential     `gorm:"foreignKey:UserID"`
-	UserRefreshTokens []UserRefreshToken `gorm:"foreignKey:UserID"`
+	UserRefreshToken UserRefreshToken `gorm:"foreignKey:UserID"`
 	Accounts          []Account          `gorm:"foreignKey:UserID"`
 }
 
