@@ -9,8 +9,8 @@ type User struct {
 	ID        uint      `gorm:"primaryKey"`
 	Email     *string   `gorm:"type:varchar(255);uniqueIndex:uq_idx_users_email"` // 退会時にNULLになるためポインタ型
 	IsDeleted bool      `gorm:"type:tinyint(1);not null;default:0"`
-	CreatedAt time.Time `gorm:"default:current_timestamp"`
-	UpdatedAt time.Time `gorm:"default:current_timestamp;onUpdate:current_timestamp"`
+	CreatedAt time.Time `gorm:"default:current_timestamp(3)"`
+	UpdatedAt time.Time `gorm:"default:current_timestamp(3);onUpdate:current_timestamp(3)"`
 
 	// リレーションシップ
 	UserCredential    UserCredential     `gorm:"foreignKey:UserID"`
@@ -22,8 +22,8 @@ type User struct {
 type UserCredential struct {
 	UserID         uint      `gorm:"primaryKey"`
 	HashedPassword string    `gorm:"type:varchar(255);not null"`
-	CreatedAt      time.Time `gorm:"default:current_timestamp"`
-	UpdatedAt      time.Time `gorm:"default:current_timestamp;onUpdate:current_timestamp"`
+	CreatedAt      time.Time `gorm:"default:current_timestamp(3)"`
+	UpdatedAt      time.Time `gorm:"default:current_timestamp(3);onUpdate:current_timestamp(3)"`
 }
 
 // UserRefreshToken はユーザーのリフレッシュトークンを管理します。
@@ -31,6 +31,6 @@ type UserRefreshToken struct {
 	UserID       uint      `gorm:"primaryKey"`
 	RefreshToken string    `gorm:"type:varchar(255);not null"`
 	ExpiresAt    time.Time `gorm:"not null"`
-	CreatedAt    time.Time `gorm:"default:current_timestamp"`
-	UpdatedAt    time.Time `gorm:"default:current_timestamp;onUpdate:current_timestamp"`
+	CreatedAt    time.Time `gorm:"default:current_timestamp(3)"`
+	UpdatedAt    time.Time `gorm:"default:current_timestamp(3);onUpdate:current_timestamp(3)"`
 }

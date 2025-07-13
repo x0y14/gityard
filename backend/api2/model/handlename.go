@@ -6,5 +6,5 @@ import "time"
 type Handlename struct {
 	ID         uint      `gorm:"primaryKey"`
 	Handlename string    `gorm:"type:varchar(255);not null;uniqueIndex:uq_idx_handlenames_handlename"`
-	CreatedAt  time.Time `gorm:"default:current_timestamp"`
+	CreatedAt  time.Time `gorm:"default:current_timestamp(3)"`
 }
