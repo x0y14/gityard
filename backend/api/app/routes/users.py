@@ -3,7 +3,7 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 
 from app import crud
-from app.deps import CurrentUser, SessionDep
+from app.deps import CurrentUserFromAuthHeader, SessionDep
 from app.models.user import UserCreate, UserPublic, UserRegister
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -26,7 +26,7 @@ def register_user(session: SessionDep, user_in: UserRegister) -> Any:
 
 
 @router.get("/me", response_model=UserPublic)
-def read_user_me(current_user: CurrentUser) -> Any:
+def read_user_me(current_user: CurrentUserFromAuthHeader) -> Any:
     """
     Get current user.
     """

@@ -12,7 +12,19 @@ ALGORITHM = "HS256"
 def create_access_token(subject: str | Any, expires_delta: timedelta) -> str:
     expire = datetime.now(timezone.utc) + expires_delta
     encoded_jwt = jwt.encode(
-        {"exp": expire, "sub": str(subject)}, settings.SECRET_KEY, algorithm=ALGORITHM
+        {"exp": expire, "sub": str(subject), "term": "short"},
+        settings.SECRET_KEY,
+        algorithm=ALGORITHM,
+    )
+    return encoded_jwt
+
+
+def create_refresh_token(subject: str | Any, expires_delta: timedelta) -> str:
+    expire = datetime.now(timezone.utc) + expires_delta
+    encoded_jwt = jwt.encode(
+        {"exp": expire, "sub": str(subject), "term": "long"},
+        settings.SECRET_KEY,
+        algorithm=ALGORITHM,
     )
     return encoded_jwt
 

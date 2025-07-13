@@ -1,6 +1,12 @@
+import uuid
+from datetime import timedelta
+
 from sqlmodel import Session, select
 
+from app.core import security
+from app.core.config import settings
 from app.core.security import get_password_hash, verify_password
+from app.models.token import LongTermToken, LongTermTokenCreate, LongTermTokenCreated
 from app.models.user import User, UserCreate
 
 
@@ -12,6 +18,12 @@ def create_user(*, session: Session, user_create: UserCreate) -> User:
     session.commit()
     session.refresh(db_obj)
     return db_obj
+
+
+def get_user_by_id(*, session: Session, id: uuid.UUID) -> User | None:
+    statement = select(User).where(User.id == id)
+    session_user = session.exec(statement).first()
+    return session_user
 
 
 def get_user_by_email(*, session: Session, email: str) -> User | None:
@@ -27,3 +39,44 @@ def authenticate(*, session: Session, email: str, password: str) -> User | None:
     if not verify_password(password, db_user.hashed_password):
         return None
     return db_user
+
+
+def get_long_term_token(
+    *, session: Session, user_id: uuid.UUID
+) -> LongTermToken | None:
+    statement = select(LongTermToken).where(LongTermToken.user_id == user_id)
+    session_long_term_token = session.exec(statement).first()
+    return session_long_term_token
+
+
+def update_long_term_token(
+    *, session: Session, long_term_token_create: LongTermTokenCreate
+) -> LongTermTokenCreated:
+    # トークンそのものを作る
+    refresh_token_expires = timedelta(minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES)
+    refresh_token = security.create_refresh_token(
+        subject=long_term_token_create.user_id,
+        expires_delta=refresh_token_expires,
+    )
+
+    # 存在確認
+    session_long_term_token = get_long_term_token(
+        session=session, user_id=long_term_token_create.user_id
+    )
+
+    # あったら中身を更新
+    if session_long_term_token:
+        session_long_term_token.refresh_token = refresh_token
+    # なかったら作成
+    else:
+        session_long_term_token = LongTermToken.model_validate(
+            long_term_token_create,
+            update={"refresh_token": refresh_token},
+        )
+
+    session.add(session_long_term_token)
+    session.commit()
+    session.refresh(session_long_term_token)
+    return LongTermTokenCreated.model_validate(
+        session_long_term_token, update={"expires": refresh_token_expires}
+    )
