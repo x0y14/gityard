@@ -22,18 +22,19 @@ create table user_credentials (
 create table user_refresh_tokens (
     user_id bigint not null,
     refresh_token varchar(255) not null,
+    expires_at datetime not null, -- 定期的にDBスキャンして期限切れを削除するため
     created_at datetime default current_timestamp,
     updated_at datetime default current_timestamp on update current_timestamp,
 
     primary key(user_id),
-    foreign key(user_id) references users(id) on delete restrict
+    foreign key(user_id) references users(id) on delete cascade -- ユーザ削除時に一緒に消す
 );
 
 create table handlenames (
     id bigint not null auto_increment,
     handlename varchar(255) not null,
     created_at datetime default current_timestamp,
-    
+
     primary key(id),
     unique index uq_idx_handlenames_handlename (handlename)
 );
@@ -71,7 +72,7 @@ create table account_profiles (
     account_id bigint not null,
     displayname varchar(255) not null default "unknown",
     iconpath varchar(255) not null default "noimage001",
-    is_public tinyint(1) not null default 1, -- 0=非公開, 1=公開
+    is_private tinyint(1) not null default 0, -- 0=公開, 1=非公開
     created_at datetime default current_timestamp,
     updated_at datetime default current_timestamp on update current_timestamp,
 
@@ -85,11 +86,11 @@ create table repositories (
     id bigint not null auto_increment,
     owner_account_id bigint,
     name varchar(255) not null,
-    is_public tinyint(1) not null default 1, -- 0=非公開, 1=公開
+    is_private tinyint(1) not null default 0, -- 0=公開, 1=非公開
     created_at datetime default current_timestamp,
     updated_at datetime default current_timestamp on update current_timestamp,
 
     primary key(id),
-    foreign key(owner_account_id) references accounts(id) on delete set null, -- on delete, dont foget set is_public=0
+    foreign key(owner_account_id) references accounts(id) on delete set null, -- on delete, dont foget set is_private=1
     unique index uq_idx_repositoris_owner_name (owner_account_id, name) -- disallow same name per account
 );
