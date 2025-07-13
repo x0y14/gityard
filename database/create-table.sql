@@ -32,6 +32,8 @@ create table user_refresh_tokens (
 create table handlenames (
     id bigint not null auto_increment,
     handlename varchar(255) not null,
+    created_at datetime default current_timestamp,
+    
     primary key(id),
     unique index uq_idx_handlenames_handlename (handlename)
 );
