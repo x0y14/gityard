@@ -85,6 +85,6 @@ def delete_pubkey(
     if not ok:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="non registered fingerprint provided",
+            detail="Fingerprint not registered",
         )
     return DeletePubkeyResponse()

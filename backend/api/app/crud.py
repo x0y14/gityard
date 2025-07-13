@@ -140,10 +140,10 @@ def register_pubkey(
     except ValueError:
         raise
 
-    item = openssh_public_key_str.split()
+    item = openssh_public_key_str.split(maxsplit=2)
     algorithm = item[0]
     keybody = item[1]
-    comment = item[2]
+    comment = item[2] if len(item) > 2 else ""
 
     # calc fingerprint
     key_bytes = base64.b64decode(keybody)
@@ -172,7 +172,6 @@ def register_pubkey(
     session.commit()
     session.refresh(db_obj)
 
-    _ = openssh_public_key_str
     return PubkeyRegistered.model_validate(db_obj)
 
 
