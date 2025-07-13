@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from sqlmodel import SQLModel
 
 from app.core.db import engine
-from app.routes import healthcheck, login, users
+from app.routes import healthcheck, login, settings, users
 
 
 def create_db_and_tables():
@@ -26,3 +26,4 @@ app = FastAPI(lifespan=lifespan)
 app.include_router(healthcheck.router)
 app.include_router(login.router)
 app.include_router(users.router)
+app.include_router(settings.router)
