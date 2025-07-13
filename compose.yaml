@@ -9,6 +9,9 @@ services:
             - "8000:8000"
         networks:
             - internal
+        depends_on:
+            database:
+                condition: service_healthy
 
     database:
         image: mysql:8.0
@@ -21,6 +24,11 @@ services:
             - "${DB_PORT}:${DB_PORT}"
         networks:
             - internal
+        healthcheck:
+            test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
 
 networks:
     internal:
