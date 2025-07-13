@@ -9,11 +9,11 @@
         },
         {
             "name": "api server",
-            "path": "./backend/api"
+            "path": "./backend/api2"
         },
         {
             "name": "ssh server",
             "path": "./backend/ssh"
-        }
+        },
     ]
 }
