@@ -104,6 +104,18 @@ def delete_long_term_token(
     return False
 
 
+def get_pubkey(
+    *, session: Session, user_id: uuid.UUID, fingerprint: str
+) -> PubKey | None:
+    statement = (
+        select(PubKey)
+        .where(PubKey.fingerprint == fingerprint)  # and
+        .where(PubKey.user_id == user_id)
+    )
+    session_pubkey = session.exec(statement).first()
+    return session_pubkey
+
+
 def register_pubkey(
     *, session: Session, user_id: uuid.UUID, pubkey_register: PubkeyRegister
 ) -> PubkeyRegistered:
@@ -140,19 +152,16 @@ def register_pubkey(
     fingerprint = f"SHA256:{fingerprint_b64}"
 
     # check duplicates
-    statement = (
-        select(PubKey)
-        .where(PubKey.fingerprint_sha256 == fingerprint)  # and
-        .where(PubKey.user_id == user_id)
+    session_pubkey = get_pubkey(
+        session=session, user_id=user_id, fingerprint=fingerprint
     )
-    session_pubkey = session.exec(statement).first()
     if session_pubkey:
         raise ValueError("registered key")
 
     db_obj = PubKey(
         name=pubkey_register.name,
         full_text=pubkey_register.full_text,
-        fingerprint_sha256=fingerprint,
+        fingerprint=fingerprint,
         algorithm=algorithm,
         keybody=keybody,
         comment=comment,
@@ -165,3 +174,15 @@ def register_pubkey(
 
     _ = openssh_public_key_str
     return PubkeyRegistered.model_validate(db_obj)
+
+
+def delete_pubkey(*, session: Session, user_id: uuid.UUID, fingerprint: str) -> bool:
+    session_pubkey = get_pubkey(
+        session=session, user_id=user_id, fingerprint=fingerprint
+    )
+    if session_pubkey is None:
+        return False
+
+    session.delete(session_pubkey)
+    session.commit()
+    return True

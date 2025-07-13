@@ -10,7 +10,7 @@ class PubKey(SQLModel, table=True):
     name: str = Field(min_length=5, max_length=255)
 
     full_text: str = Field(max_length=2000)
-    fingerprint_sha256: str = Field(max_length=64, unique=True, index=True)
+    fingerprint: str = Field(max_length=64, unique=True, index=True)  # sha256
 
     algorithm: str
     keybody: str = Field(max_length=1500)
@@ -25,14 +25,18 @@ class PubkeyRegister(SQLModel):
 
 
 class PubkeyRegistered(SQLModel):
-    fingerprint_sha256: str
+    fingerprint: str
 
 
 class PubkeyPublic(SQLModel):
     name: str
-    fingerprint_sha256: str
+    fingerprint: str
 
 
 class PubkeysPublic(SQLModel):
     data: list[PubkeyPublic]
     count: int
+
+
+class PubkeyDelete(SQLModel):
+    fingerprint: str

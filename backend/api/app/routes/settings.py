@@ -1,12 +1,14 @@
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, status
+from pydantic import BaseModel, ConfigDict
 from sqlmodel import func, select
 
 from app import crud
 from app.deps import CurrentUserFromAuthHeader, SessionDep
 from app.models.pubkey import (
     PubKey,
+    PubkeyDelete,
     PubkeyPublic,
     PubkeyRegister,
     PubkeyRegistered,
@@ -16,7 +18,7 @@ from app.models.pubkey import (
 router = APIRouter(prefix="/settings", tags=["settings"])
 
 
-@router.post("/keys", response_model=PubkeyRegistered)
+@router.post("/keys/register", response_model=PubkeyRegistered)
 def register_pubkey(
     session: SessionDep,
     current_user: CurrentUserFromAuthHeader,
@@ -39,7 +41,7 @@ def register_pubkey(
     return registered
 
 
-@router.get("/keys", response_model=PubkeysPublic)
+@router.get("/keys/list", response_model=PubkeysPublic)
 def registered_pubkeys(
     session: SessionDep,
     current_user: CurrentUserFromAuthHeader,
@@ -63,3 +65,26 @@ def registered_pubkeys(
 
     data: list[PubkeyPublic] = [PubkeyPublic.model_validate(pk) for pk in pubkeys]
     return PubkeysPublic(data=data, count=count)
+
+
+class DeletePubkeyResponse(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+
+@router.post("/keys/delete", response_model=DeletePubkeyResponse, status_code=200)
+def delete_pubkey(
+    session: SessionDep,
+    current_user: CurrentUserFromAuthHeader,
+    delete_in: PubkeyDelete,
+) -> Any:
+    ok = crud.delete_pubkey(
+        session=session,
+        user_id=current_user.id,
+        fingerprint=delete_in.fingerprint,
+    )
+    if not ok:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="non registered fingerprint provided",
+        )
+    return DeletePubkeyResponse()
