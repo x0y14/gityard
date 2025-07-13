@@ -13,6 +13,17 @@ create table users (
 create table user_credentials (
     user_id bigint not null,
     hashed_password varchar(255) not null,
+    created_at datetime default current_timestamp,
+    updated_at datetime default current_timestamp on update current_timestamp,
+
+    primary key(user_id),
+    foreign key(user_id) references users(id) on delete restrict
+);
+create table user_refresh_tokens (
+    user_id bigint not null,
+    refresh_token varchar(255) not null,
+    created_at datetime default current_timestamp,
+    updated_at datetime default current_timestamp on update current_timestamp,
 
     primary key(user_id),
     foreign key(user_id) references users(id) on delete restrict
