@@ -6,6 +6,7 @@ import (
 	"gityard-api/crud"
 	"gityard-api/model"
 	"gityard-api/secutiry"
+	"log/slog"
 )
 
 var validate = validator.New(validator.WithRequiredStructEnabled())
@@ -19,62 +20,74 @@ func SignUp(c *fiber.Ctx) error {
 	}
 	req := new(Request)
 	if err := c.BodyParser(req); err != nil {
+		slog.Debug("failed to parse", "request body", req)
 		return c.Status(422).JSON(fiber.Map{"message": "invalid request"})
 	}
 
 	// validation
 	err := validate.Struct(req)
 	if err != nil {
+		slog.Debug("failed to validate", "request body", req)
 		return c.Status(422).JSON(fiber.Map{"message": "invalid request"})
 	}
 
 	// 重複確認
 	dbInUser, err := crud.GetUserByEmail(req.Email)
 	if err != nil {
+		slog.Error("failed to get user by email", "detail", err)
 		return InternalError(c)
 	}
 	if dbInUser != nil {
+		slog.Info("signup rejected", "reason", "registered email")
 		return c.Status(403).JSON(fiber.Map{"message": "registered email"})
 	}
 
 	dbInHandleName, err := crud.GetHandleNameByName(req.HandleName)
 	if err != nil {
+		slog.Error("failed to get handlename", "detail", err)
 		return InternalError(c)
 	}
 	if dbInHandleName != nil {
+		slog.Info("signup rejected", "reason", "registered handlename")
 		return c.Status(403).JSON(fiber.Map{"message": "registered handlename"})
 	}
 
 	// 登録処理
 	user, err := crud.CreateUser(req.Email)
 	if err != nil {
+		slog.Error("failed to create user", "detail", err)
 		return InternalError(c)
 	}
 
 	handleName, err := crud.CreateHandleName(req.HandleName)
 	if err != nil {
+		slog.Error("failed to create handlename", "detail", err)
 		return InternalError(c)
 	}
 
 	account, err := crud.CreateAccount(user.ID, handleName.ID, model.PersonalAccount)
 	if err != nil {
+		slog.Error("failed to create account", "detail", err)
 		return InternalError(c)
 	}
 
 	_, err = crud.CreateAccountProfile(account.ID, handleName.Handlename, false)
 	if err != nil {
+		slog.Error("failed to create profile", "detail", err)
 		return InternalError(c)
 	}
 
 	// 認証情報作成
 	_, err = crud.CreateUserCredential(user.ID, req.Password)
 	if err != nil {
+		slog.Error("failed to create credential", "detail", err)
 		return InternalError(c)
 	}
 
 	// generate & set refresh token into cookie
 	refreshToken, err := crud.CreateUserRefreshToken(user.ID)
 	if err != nil {
+		slog.Error("failed to create or update refresh token", "detail", err)
 		return InternalError(c)
 	}
 	c.Cookie(&fiber.Cookie{
@@ -88,6 +101,7 @@ func SignUp(c *fiber.Ctx) error {
 
 	accessToken, err := secutiry.GenerateAccessToken(user.ID)
 	if err != nil {
+		slog.Error("failed to generate access token", "detail", err)
 		return InternalError(c)
 	}
 
