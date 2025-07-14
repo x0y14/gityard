@@ -85,7 +85,7 @@ func SignUp(c *fiber.Ctx) error {
 	}
 
 	// generate & set refresh token into cookie
-	refreshToken, err := crud.CreateUserRefreshToken(user.ID)
+	refreshToken, err := crud.CreateOrUpdateUserRefreshToken(user.ID)
 	if err != nil {
 		slog.Error("failed to create or update refresh token", "detail", err)
 		return InternalError(c)
@@ -119,7 +119,80 @@ func SignUp(c *fiber.Ctx) error {
 
 // Login handler for /login
 func Login(c *fiber.Ctx) error {
-	return c.JSON(fiber.Map{})
+	type Request struct {
+		Email    string `json:"email" validate:"required,email"`
+		Password string `json:"password" validate:"required,min=8"`
+	}
+	req := new(Request)
+	if err := c.BodyParser(req); err != nil {
+		slog.Debug("failed to parse", "request body", req)
+		return c.Status(422).JSON(fiber.Map{"message": "invalid request"})
+	}
+	// validation
+	err := validate.Struct(req)
+	if err != nil {
+		slog.Debug("failed to validate", "request body", req)
+		return c.Status(422).JSON(fiber.Map{"message": "invalid request"})
+	}
+
+	user, err := crud.GetUserByEmail(req.Email)
+	if err != nil {
+		slog.Error("failed to get user by email", "detail", err)
+		return InternalError(c)
+	}
+
+	if user == nil {
+		slog.Info("login rejected", "reason", "not registered email")
+		return c.Status(401).JSON(fiber.Map{"message": "invalid credentials"})
+	}
+
+	credential, err := crud.GetUserCredentialById(user.ID)
+	if err != nil {
+		slog.Error("failed to get credential by userid", "detail", err)
+		return InternalError(c)
+	}
+
+	if credential == nil {
+		slog.Info("login rejected", "reason", "not registered credential")
+		return c.Status(401).JSON(fiber.Map{"message": "invalid credentials"})
+	}
+
+	if secutiry.VerifyPassword(req.Password, credential.HashedPassword) == false {
+		slog.Info("login rejected", "reason", "password does not match")
+		return c.Status(401).JSON(fiber.Map{"message": "invalid credentials"})
+	}
+
+	// generate & set refresh token into cookie
+	refreshToken, err := crud.CreateOrUpdateUserRefreshToken(user.ID)
+	if err != nil {
+		slog.Error("failed to create/update refresh token", "detail", err)
+		return InternalError(c)
+	}
+	c.Cookie(&fiber.Cookie{
+		Name:     "refresh_token",
+		Value:    refreshToken.RefreshToken,
+		Expires:  refreshToken.ExpiresAt,
+		Secure:   false,
+		HTTPOnly: true,
+		SameSite: "strict",
+	})
+
+	accessToken, err := secutiry.GenerateAccessToken(user.ID)
+	if err != nil {
+		slog.Error("failed to generate access token", "detail", err)
+		return InternalError(c)
+	}
+
+	type Response struct {
+		AccessToken string `json:"access_token"`
+		TokenType   string `json:"token_type"`
+		ExpiresIn   int64  `json:"expires_in"` // sec
+	}
+	res := new(Response)
+	res.AccessToken = accessToken.Body
+	res.TokenType = accessToken.Type
+	res.ExpiresIn = int64(accessToken.ExpiresIn.Seconds())
+	return c.JSON(*res)
 }
 
 // Logout handler for /logout
