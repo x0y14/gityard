@@ -78,27 +78,17 @@ func CreateOrUpdateUserRefreshToken(userId uint) (*model.UserRefreshToken, error
 		return nil, err
 	}
 
-	userRefreshToken := new(model.UserRefreshToken)
-	userRefreshToken.UserID = userId
-	userRefreshToken.RefreshToken = refreshToken.Body
-	userRefreshToken.ExpiresAt = time.Now().Add(refreshToken.ExpiresIn)
+	data := model.UserRefreshToken{
+		RefreshToken: refreshToken.Body,
+		ExpiresAt:    time.Now().Add(refreshToken.ExpiresIn),
+	}
+	userRefreshToken := model.UserRefreshToken{UserID: userId}
 
-	if err := db.Model(&userRefreshToken).Where(&model.UserRefreshToken{UserID: userId}).Update("refresh_token", refreshToken.Body).Error; err != nil {
-		// 更新に失敗した場合: レコードがない
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			// 作る
-			if err := db.Create(&userRefreshToken).Error; err != nil {
-				// 失敗
-				return nil, err
-			}
-			// 成功
-			return userRefreshToken, nil
-		}
-		// 更新に失敗した場合: それ以外
+	if err := db.Where(&userRefreshToken).Assign(data).FirstOrCreate(&userRefreshToken).Error; err != nil {
 		return nil, err
 	}
-	// 更新に成功
-	return userRefreshToken, nil
+
+	return &userRefreshToken, nil
 }
 
 func GetUserRefreshTokenById(userId uint) (*model.UserRefreshToken, error) {
