@@ -5,6 +5,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"gityard-api/crud"
 	"gityard-api/model"
+	"gityard-api/secutiry"
 )
 
 var validate = validator.New(validator.WithRequiredStructEnabled())
@@ -27,7 +28,7 @@ func SignUp(c *fiber.Ctx) error {
 		return c.Status(422).JSON(fiber.Map{"message": "invalid request"})
 	}
 
-	// email check
+	// 重複確認
 	dbInUser, err := crud.GetUserByEmail(req.Email)
 	if err != nil {
 		return InternalError(c)
@@ -36,7 +37,6 @@ func SignUp(c *fiber.Ctx) error {
 		return c.Status(403).JSON(fiber.Map{"message": "registered email"})
 	}
 
-	// handle name check
 	dbInHandleName, err := crud.GetHandleNameByName(req.HandleName)
 	if err != nil {
 		return InternalError(c)
@@ -45,30 +45,62 @@ func SignUp(c *fiber.Ctx) error {
 		return c.Status(403).JSON(fiber.Map{"message": "registered handlename"})
 	}
 
+	// 登録処理
 	user, err := crud.CreateUser(req.Email)
 	if err != nil {
 		return InternalError(c)
 	}
 
-	accountHandleName, err := crud.CreateHandleName(req.HandleName)
+	handleName, err := crud.CreateHandleName(req.HandleName)
 	if err != nil {
 		return InternalError(c)
 	}
 
-	_, err = crud.CreateAccount(user.ID, accountHandleName.ID, model.PersonalAccount)
+	account, err := crud.CreateAccount(user.ID, handleName.ID, model.PersonalAccount)
+	if err != nil {
+		return InternalError(c)
+	}
+
+	_, err = crud.CreateAccountProfile(account.ID, handleName.Handlename, false)
+	if err != nil {
+		return InternalError(c)
+	}
+
+	// 認証情報作成
+	_, err = crud.CreateUserCredential(user.ID, req.Password)
+	if err != nil {
+		return InternalError(c)
+	}
+
+	// generate & set refresh token into cookie
+	refreshToken, err := crud.CreateUserRefreshToken(user.ID)
+	if err != nil {
+		return InternalError(c)
+	}
+	c.Cookie(&fiber.Cookie{
+		Name:     "refresh_token",
+		Value:    refreshToken.RefreshToken,
+		Expires:  refreshToken.ExpiresAt,
+		Secure:   false,
+		HTTPOnly: true,
+		SameSite: "strict",
+	})
+
+	accessToken, err := secutiry.GenerateAccessToken(user.ID)
 	if err != nil {
 		return InternalError(c)
 	}
 
 	type Response struct {
-		Email      string `json:"email"`
-		HandleName string `json:"handlename"`
+		AccessToken string `json:"access_token"`
+		TokenType   string `json:"token_type"`
+		ExpiresIn   int64  `json:"expires_in"` // sec
 	}
 	res := new(Response)
-	res.Email = *user.Email
-	res.HandleName = accountHandleName.Handlename
-
-	return c.JSON(res)
+	res.AccessToken = accessToken.Body
+	res.TokenType = accessToken.Type
+	res.ExpiresIn = int64(accessToken.ExpiresIn.Seconds())
+	return c.JSON(*res)
 }
 
 // Login handler for /login
