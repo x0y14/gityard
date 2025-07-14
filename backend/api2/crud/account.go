@@ -24,7 +24,7 @@ func GetHandleNameById(handlenameid uint) (*model.Handlename, error) {
 	db := database.DB
 
 	var handlename model.Handlename
-	if err := db.Where(&model.Handlename{ID: handlenameid}).First(&handlename).Error; err != nil {
+	if err := db.Model(&handlename).Where(&model.Handlename{ID: handlenameid}).First(&handlename).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
@@ -38,7 +38,7 @@ func GetHandleNameByName(name string) (*model.Handlename, error) {
 	db := database.DB
 
 	var handlename model.Handlename
-	if err := db.Where(&model.Handlename{Handlename: name}).First(&handlename).Error; err != nil {
+	if err := db.Model(handlename).Where(&model.Handlename{Handlename: name}).First(&handlename).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
@@ -67,7 +67,7 @@ func GetAccountById(accountId uint) (*model.Account, error) {
 	db := database.DB
 
 	var account model.Account
-	if err := db.Where(&model.Account{ID: accountId}).First(&account).Error; err != nil {
+	if err := db.Model(&account).Where(&model.Account{ID: accountId}).First(&account).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
@@ -97,7 +97,7 @@ func GetAccountProfileById(accountId uint) (*model.AccountProfile, error) {
 	db := database.DB
 
 	var profile model.AccountProfile
-	if err := db.Where(&model.AccountProfile{AccountID: accountId}).First(&profile).Error; err != nil {
+	if err := db.Model(&profile).Where(&model.AccountProfile{AccountID: accountId}).First(&profile).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}

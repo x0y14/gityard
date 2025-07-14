@@ -27,7 +27,7 @@ func GetUserByEmail(email string) (*model.User, error) {
 	db := database.DB
 
 	var user model.User
-	if err := db.Where(&model.User{Email: &email}).First(&user).Error; err != nil {
+	if err := db.Model(&user).Where(&model.User{Email: &email}).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
@@ -60,7 +60,7 @@ func GetUserCredentialById(userId uint) (*model.UserCredential, error) {
 	db := database.DB
 
 	var credential model.UserCredential
-	if err := db.Where(&model.UserCredential{UserID: userId}).First(&credential).Error; err != nil {
+	if err := db.Model(&credential).Where(&model.UserCredential{UserID: userId}).First(&credential).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
@@ -105,7 +105,7 @@ func GetUserRefreshTokenById(userId uint) (*model.UserRefreshToken, error) {
 	db := database.DB
 
 	var refreshToken model.UserRefreshToken
-	if err := db.Where(&model.UserRefreshToken{UserID: userId}).First(&refreshToken).Error; err != nil {
+	if err := db.Model(&refreshToken).Where(&model.UserRefreshToken{UserID: userId}).First(&refreshToken).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
