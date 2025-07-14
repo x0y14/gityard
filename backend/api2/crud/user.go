@@ -7,6 +7,7 @@ import (
 	"gityard-api/model"
 	"gityard-api/secutiry"
 	"gorm.io/gorm"
+	"time"
 )
 
 func CreateUser(email string) (*model.User, error) {
@@ -79,7 +80,8 @@ func CreateUserRefreshToken(userId uint) (*model.UserRefreshToken, error) {
 
 	userRefreshToken := new(model.UserRefreshToken)
 	userRefreshToken.UserID = userId
-	userRefreshToken.RefreshToken = refreshToken
+	userRefreshToken.RefreshToken = refreshToken.Body
+	userRefreshToken.ExpiresAt = time.Now().Add(refreshToken.ExpiresIn)
 
 	if err := db.Create(&userRefreshToken).Error; err != nil {
 		return nil, err
