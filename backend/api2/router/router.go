@@ -2,6 +2,7 @@ package router
 
 import (
 	"gityard-api/handler"
+	"gityard-api/middleware"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
@@ -14,6 +15,6 @@ func SetupRoutes(app *fiber.App) {
 	v1.Get("/healthcheck", handler.HealthCheck)
 
 	auth := v1.Group("/auth")
-	auth.Post("/signup", handler.SignUp)
-	auth.Post("/login", handler.Login)
+	auth.Post("/signup", middleware.WithoutAuthInfoProtection, handler.SignUp)
+	auth.Post("/login", middleware.WithoutAuthInfoProtection, handler.Login)
 }
