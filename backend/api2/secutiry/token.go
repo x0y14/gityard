@@ -13,7 +13,7 @@ func GenerateAccessToken(userId uint) (*model.AccessToken, error) {
 
 	token := jwt.New(jwt.SigningMethodHS256)
 	claims := token.Claims.(jwt.MapClaims)
-	claims["user_id"] = strconv.Itoa(int(userId))
+	claims["sub"] = strconv.Itoa(int(userId))
 	claims["exp"] = time.Now().Add(expiresIn).Unix()
 	claims["kind"] = "access_token"
 
@@ -36,7 +36,7 @@ func GenerateRefreshToken(userId uint) (*model.RefreshToken, error) {
 
 	token := jwt.New(jwt.SigningMethodHS256)
 	claims := token.Claims.(jwt.MapClaims)
-	claims["user_id"] = strconv.Itoa(int(userId))
+	claims["sub"] = strconv.Itoa(int(userId))
 	claims["exp"] = time.Now().Add(expiresIn).Unix()
 	claims["kind"] = "refresh_token"
 
