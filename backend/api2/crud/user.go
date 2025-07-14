@@ -70,7 +70,7 @@ func GetUserCredentialById(userId uint) (*model.UserCredential, error) {
 	return &credential, nil
 }
 
-func CreateUserRefreshToken(userId uint) (*model.UserRefreshToken, error) {
+func CreateOrUpdateUserRefreshToken(userId uint) (*model.UserRefreshToken, error) {
 	db := database.DB
 
 	refreshToken, err := secutiry.GenerateRefreshToken(userId)
@@ -83,10 +83,21 @@ func CreateUserRefreshToken(userId uint) (*model.UserRefreshToken, error) {
 	userRefreshToken.RefreshToken = refreshToken.Body
 	userRefreshToken.ExpiresAt = time.Now().Add(refreshToken.ExpiresIn)
 
-	if err := db.Create(&userRefreshToken).Error; err != nil {
+	if err := db.Model(&userRefreshToken).Where(&model.UserRefreshToken{UserID: userId}).Update("refresh_token", refreshToken.Body).Error; err != nil {
+		// 更新に失敗した場合: レコードがない
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			// 作る
+			if err := db.Create(&userRefreshToken).Error; err != nil {
+				// 失敗
+				return nil, err
+			}
+			// 成功
+			return userRefreshToken, nil
+		}
+		// 更新に失敗した場合: それ以外
 		return nil, err
 	}
-
+	// 更新に成功
 	return userRefreshToken, nil
 }
 
