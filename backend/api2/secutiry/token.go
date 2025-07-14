@@ -3,28 +3,53 @@ package secutiry
 import (
 	"github.com/golang-jwt/jwt/v5"
 	"gityard-api/config"
+	"gityard-api/model"
 	"strconv"
 	"time"
 )
 
-func GenerateAccessToken(userId uint) (string, error) {
-	token := jwt.New(jwt.SigningMethodHS256)
+func GenerateAccessToken(userId uint) (*model.AccessToken, error) {
+	expiresIn := time.Minute * config.AccessTokenActiveDurationMinutes
 
+	token := jwt.New(jwt.SigningMethodHS256)
 	claims := token.Claims.(jwt.MapClaims)
 	claims["user_id"] = strconv.Itoa(int(userId))
-	claims["exp"] = time.Now().Add(time.Minute * config.AccessTokenActiveDurationMinutes).Unix()
+	claims["exp"] = time.Now().Add(expiresIn).Unix()
 	claims["kind"] = "access_token"
 
-	return token.SignedString([]byte(config.Config("SECRET")))
+	body, err := token.SignedString([]byte(config.Config("SECRET")))
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.AccessToken{
+		Body: body,
+		Token: model.Token{
+			Type:      "Bearer",
+			ExpiresIn: expiresIn,
+		},
+	}, nil
 }
 
-func GenerateRefreshToken(userId uint) (string, error) {
-	token := jwt.New(jwt.SigningMethodHS256)
+func GenerateRefreshToken(userId uint) (*model.RefreshToken, error) {
+	expiresIn := time.Minute * config.RefreshTokenActiveDurationMinutes
 
+	token := jwt.New(jwt.SigningMethodHS256)
 	claims := token.Claims.(jwt.MapClaims)
 	claims["user_id"] = strconv.Itoa(int(userId))
-	claims["exp"] = time.Now().Add(time.Minute * config.RefreshTokenActiveDurationMinutes).Unix()
+	claims["exp"] = time.Now().Add(expiresIn).Unix()
 	claims["kind"] = "refresh_token"
 
-	return token.SignedString([]byte(config.Config("SECRET")))
+	body, err := token.SignedString([]byte(config.Config("SECRET")))
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.RefreshToken{
+		Body: body,
+		Token: model.Token{
+			Type:      "Bearer",
+			ExpiresIn: expiresIn,
+		},
+	}, nil
 }
