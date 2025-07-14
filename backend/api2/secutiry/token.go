@@ -1,6 +1,7 @@
 package secutiry
 
 import (
+	"fmt"
 	"github.com/golang-jwt/jwt/v5"
 	"gityard-api/config"
 	"gityard-api/model"
@@ -52,4 +53,72 @@ func GenerateRefreshToken(userId uint) (*model.RefreshToken, error) {
 			ExpiresIn: expiresIn,
 		},
 	}, nil
+}
+
+func VerifyAccessToken(accessToken string) (uint, bool) {
+	token, err := jwt.Parse(accessToken, func(token *jwt.Token) (any, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method")
+		}
+		return []byte(config.Config("SECRET")), nil
+	})
+
+	if err != nil || !token.Valid {
+		return 0, false
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return 0, false
+	}
+
+	// 用途チェック
+	if kind, ok := claims["kind"]; !ok || kind != "access_token" {
+		return 0, false
+	}
+
+	userIdStr, ok := claims["sub"]
+	if !ok {
+		return 0, false
+	}
+	userId64, err := strconv.ParseInt(fmt.Sprintf("%s", userIdStr), 10, 64)
+	if err != nil {
+		return 0, false
+	}
+
+	return uint(userId64), true
+}
+
+func VerifyRefreshToken(refreshToken string) (uint, bool) {
+	token, err := jwt.Parse(refreshToken, func(token *jwt.Token) (any, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method")
+		}
+		return []byte(config.Config("SECRET")), nil
+	})
+
+	if err != nil || !token.Valid {
+		return 0, false
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return 0, false
+	}
+
+	// 用途チェック
+	if kind, ok := claims["kind"]; !ok || kind != "refresh_token" {
+		return 0, false
+	}
+
+	userIdStr, ok := claims["sub"]
+	if !ok {
+		return 0, false
+	}
+	userId64, err := strconv.ParseInt(fmt.Sprintf("%s", userIdStr), 10, 64)
+	if err != nil {
+		return 0, false
+	}
+
+	return uint(userId64), true
 }
