@@ -17,4 +17,6 @@ func SetupRoutes(app *fiber.App) {
 	auth := v1.Group("/auth")
 	auth.Post("/signup", middleware.WithoutAuthInfoProtection, handler.SignUp)
 	auth.Post("/login", middleware.WithoutAuthInfoProtection, handler.Login)
+	auth.Post("/logout", middleware.AuthHeaderProtection, handler.Logout)
+	auth.Post("/refresh", middleware.AuthCookieProtection, handler.Refresh)
 }

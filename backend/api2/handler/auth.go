@@ -7,6 +7,7 @@ import (
 	"gityard-api/model"
 	"gityard-api/secutiry"
 	"log/slog"
+	"time"
 )
 
 var validate = validator.New(validator.WithRequiredStructEnabled())
@@ -195,11 +196,55 @@ func Login(c *fiber.Ctx) error {
 	return c.JSON(*res)
 }
 
+func ClearCookies(c *fiber.Ctx, key ...string) {
+	for i := range key {
+		c.Cookie(&fiber.Cookie{
+			Name:    key[i],
+			Expires: time.Now().Add(-time.Hour * 24),
+			Value:   "",
+		})
+	}
+}
+
 // Logout handler for /logout
 func Logout(c *fiber.Ctx) error {
-	return c.JSON(fiber.Map{})
+	//c.ClearCookie("refresh_token")
+	ClearCookies(c, "refresh_token") // ref: https://github.com/gofiber/fiber/issues/1127
+	return c.Status(200).JSON(fiber.Map{})
 }
 
 func Refresh(c *fiber.Ctx) error {
-	return c.JSON(fiber.Map{})
+	userId := c.Locals("user_id").(uint)
+
+	// generate & set refresh token into cookie
+	refreshToken, err := crud.CreateOrUpdateUserRefreshToken(userId)
+	if err != nil {
+		slog.Error("failed to create/update refresh token", "detail", err)
+		return InternalError(c)
+	}
+	c.Cookie(&fiber.Cookie{
+		Name:     "refresh_token",
+		Value:    refreshToken.RefreshToken,
+		Expires:  refreshToken.ExpiresAt,
+		Secure:   false,
+		HTTPOnly: true,
+		SameSite: "strict",
+	})
+
+	accessToken, err := secutiry.GenerateAccessToken(userId)
+	if err != nil {
+		slog.Error("failed to generate access token", "detail", err)
+		return InternalError(c)
+	}
+
+	type Response struct {
+		AccessToken string `json:"access_token"`
+		TokenType   string `json:"token_type"`
+		ExpiresIn   int64  `json:"expires_in"` // sec
+	}
+	res := new(Response)
+	res.AccessToken = accessToken.Body
+	res.TokenType = accessToken.Type
+	res.ExpiresIn = int64(accessToken.ExpiresIn.Seconds())
+	return c.JSON(*res)
 }
