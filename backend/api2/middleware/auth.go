@@ -1,8 +1,7 @@
 package middleware
 
 import (
-	"github.com/golang-jwt/jwt/v5"
-	"gityard-api/config"
+	"gityard-api/secutiry"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
@@ -12,24 +11,24 @@ func WithoutAuthInfoProtection(c *fiber.Ctx) error {
 	authHeader := c.Get("Authorization")
 	if authHeader != "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"message": "Authorization header exists",
+			"message": "authorization header exists",
 		})
 	}
 	refreshTokenCookie := c.Cookies("refresh_token", "")
 	if refreshTokenCookie != "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"message": "Authorization cookie exists",
+			"message": "authorization cookie exists",
 		})
 	}
 	return c.Next()
 }
 
-func AuthInfoProtection(c *fiber.Ctx) error {
+func AuthHeaderProtection(c *fiber.Ctx) error {
 	// 1. "Authorization"ヘッダーを取得
 	authHeader := c.Get("Authorization")
 	if authHeader == "" {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"message": "Authorization header is missing",
+			"message": "authorization header is missing",
 		})
 	}
 
@@ -37,32 +36,47 @@ func AuthInfoProtection(c *fiber.Ctx) error {
 	parts := strings.Split(authHeader, " ")
 	if len(parts) != 2 || parts[0] != "Bearer" {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"message": "Invalid token format",
+			"message": "invalid token format",
 		})
 	}
 	tokenString := parts[1] // [0] == "Bearer"
 
 	// 3. トークンを検証
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		// 署名アルゴリズムが期待通りかチェック (HS256)
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fiber.NewError(fiber.StatusUnauthorized, "unexpected signing method")
-		}
-		return []byte(config.Config("SECRET")), nil
-	})
+	userId, ok := secutiry.VerifyAccessToken(tokenString)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "invalid access_token"})
+	}
 
-	if err != nil || !token.Valid {
+	// 4. 情報取り出す
+	c.Locals("user_id", userId)
+
+	return c.Next()
+}
+
+func AuthCookieProtection(c *fiber.Ctx) error {
+	// 1. "Authorization"クッキーを取得
+	authCookie := c.Cookies("refresh_token", "")
+	if authCookie == "" {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "authorization cookie is missing"})
+	}
+
+	// 2. "Bearer <token>"の形式かチェック
+	parts := strings.Split(authCookie, " ")
+	if len(parts) != 2 || parts[0] != "Bearer" {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"message": "Invalid or expired token",
+			"message": "invalid token format",
 		})
 	}
+	tokenString := parts[1] // [0] == "Bearer"
 
-	// 4. トークンからユーザー情報を取得し、Contextに保存
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if ok {
-		c.Locals("user_id", claims["user_id"])
+	// 3. トークンを検証
+	userId, ok := secutiry.VerifyRefreshToken(tokenString)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "invalid refresh_token"})
 	}
 
-	// 5. 次のミドルウェアまたはハンドラへ処理を移す
+	// 4. 情報取り出す
+	c.Locals("user_id", userId)
+
 	return c.Next()
 }
