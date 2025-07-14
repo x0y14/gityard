@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"gityard-api/crud"
+	"gityard-api/handler"
 	"gityard-api/secutiry"
 	"strings"
 
@@ -60,18 +62,21 @@ func AuthCookieProtection(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "authorization cookie is missing"})
 	}
 
-	// 2. "Bearer <token>"の形式かチェック
-	parts := strings.Split(authCookie, " ")
-	if len(parts) != 2 || parts[0] != "Bearer" {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"message": "invalid token format",
-		})
-	}
-	tokenString := parts[1] // [0] == "Bearer"
-
-	// 3. トークンを検証
-	userId, ok := secutiry.VerifyRefreshToken(tokenString)
+	userId, ok := secutiry.VerifyRefreshToken(authCookie)
 	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "invalid refresh_token"})
+	}
+
+	refreshToken, err := crud.GetUserRefreshTokenById(userId)
+	if err != nil {
+		return handler.InternalError(c)
+	}
+
+	// 失効チェック
+	if refreshToken == nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "invalid refresh_token"})
+	}
+	if refreshToken.RefreshToken != authCookie {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "invalid refresh_token"})
 	}
 
