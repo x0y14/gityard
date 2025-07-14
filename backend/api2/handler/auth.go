@@ -30,7 +30,7 @@ func SignUp(c *fiber.Ctx) error {
 	// email check
 	dbInUser, err := crud.GetUserByEmail(req.Email)
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{"message": "internal error"})
+		return InternalError(c)
 	}
 	if dbInUser != nil {
 		return c.Status(403).JSON(fiber.Map{"message": "registered email"})
@@ -39,7 +39,7 @@ func SignUp(c *fiber.Ctx) error {
 	// handle name check
 	dbInHandleName, err := crud.GetHandleNameByName(req.HandleName)
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{"message": "internal error"})
+		return InternalError(c)
 	}
 	if dbInHandleName != nil {
 		return c.Status(403).JSON(fiber.Map{"message": "registered handlename"})
@@ -47,17 +47,17 @@ func SignUp(c *fiber.Ctx) error {
 
 	user, err := crud.CreateUser(req.Email)
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{"message": "internal error"})
+		return InternalError(c)
 	}
 
 	accountHandleName, err := crud.CreateHandleName(req.HandleName)
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{"message": "internal error"})
+		return InternalError(c)
 	}
 
 	_, err = crud.CreateAccount(user.ID, accountHandleName.ID, model.PersonalAccount)
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{"message": "internal error"})
+		return InternalError(c)
 	}
 
 	type Response struct {
