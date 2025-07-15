@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"gityard-api/config"
 	"log"
+	"log/slog"
 	"strconv"
 	"time"
 
@@ -42,7 +43,7 @@ func ConnectDB() {
 	}
 
 	fmt.Println("Connection Opened to Database")
-	DB.AutoMigrate(
+	err = DB.AutoMigrate(
 		&model.User{},
 		&model.UserCredential{},
 		&model.UserRefreshToken{},
@@ -52,5 +53,9 @@ func ConnectDB() {
 		&model.AccountPublicKey{},
 		&model.Repository{},
 	)
+	if err != nil {
+		slog.Error("failed to migrate db", "detail", err)
+		panic("failed to migrate db")
+	}
 	fmt.Println("Database Migrated")
 }
