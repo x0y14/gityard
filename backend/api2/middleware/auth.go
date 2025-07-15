@@ -1,8 +1,8 @@
 package middleware
 
 import (
-	"gityard-api/crud"
 	"gityard-api/handler"
+	"gityard-api/repository"
 	"gityard-api/security"
 	"strings"
 
@@ -67,7 +67,7 @@ func AuthCookieProtection(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "invalid refresh_token"})
 	}
 
-	refreshToken, err := crud.GetUserRefreshTokenById(userId)
+	refreshToken, err := repository.GetUserRefreshTokenById(userId)
 	if err != nil {
 		return handler.InternalError(c)
 	}

@@ -3,8 +3,8 @@ package handler
 import (
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
-	"gityard-api/crud"
 	"gityard-api/model"
+	"gityard-api/repository"
 	"gityard-api/security"
 	"log/slog"
 	"time"
@@ -33,7 +33,7 @@ func SignUp(c *fiber.Ctx) error {
 	}
 
 	// 重複確認
-	dbInUser, err := crud.GetUserByEmail(req.Email)
+	dbInUser, err := repository.GetUserByEmail(req.Email)
 	if err != nil {
 		slog.Error("failed to get user by email", "detail", err)
 		return InternalError(c)
@@ -43,7 +43,7 @@ func SignUp(c *fiber.Ctx) error {
 		return c.Status(403).JSON(fiber.Map{"message": "registered email"})
 	}
 
-	dbInHandleName, err := crud.GetHandleNameByName(req.HandleName)
+	dbInHandleName, err := repository.GetHandleNameByName(req.HandleName)
 	if err != nil {
 		slog.Error("failed to get handlename", "detail", err)
 		return InternalError(c)
@@ -54,39 +54,39 @@ func SignUp(c *fiber.Ctx) error {
 	}
 
 	// 登録処理
-	user, err := crud.CreateUser(req.Email)
+	user, err := repository.CreateUser(req.Email)
 	if err != nil {
 		slog.Error("failed to create user", "detail", err)
 		return InternalError(c)
 	}
 
-	handleName, err := crud.CreateHandleName(req.HandleName)
+	handleName, err := repository.CreateHandleName(req.HandleName)
 	if err != nil {
 		slog.Error("failed to create handlename", "detail", err)
 		return InternalError(c)
 	}
 
-	account, err := crud.CreateAccount(user.ID, handleName.ID, model.PersonalAccount)
+	account, err := repository.CreateAccount(user.ID, handleName.ID, model.PersonalAccount)
 	if err != nil {
 		slog.Error("failed to create account", "detail", err)
 		return InternalError(c)
 	}
 
-	_, err = crud.CreateAccountProfile(account.ID, handleName.Handlename, false)
+	_, err = repository.CreateAccountProfile(account.ID, handleName.Handlename, false)
 	if err != nil {
 		slog.Error("failed to create profile", "detail", err)
 		return InternalError(c)
 	}
 
 	// 認証情報作成
-	_, err = crud.CreateUserCredential(user.ID, req.Password)
+	_, err = repository.CreateUserCredential(user.ID, req.Password)
 	if err != nil {
 		slog.Error("failed to create credential", "detail", err)
 		return InternalError(c)
 	}
 
 	// generate & set refresh token into cookie
-	refreshToken, err := crud.CreateOrUpdateUserRefreshToken(user.ID)
+	refreshToken, err := repository.CreateOrUpdateUserRefreshToken(user.ID)
 	if err != nil {
 		slog.Error("failed to create or update refresh token", "detail", err)
 		return InternalError(c)
@@ -136,7 +136,7 @@ func Login(c *fiber.Ctx) error {
 		return c.Status(422).JSON(fiber.Map{"message": "invalid request"})
 	}
 
-	user, err := crud.GetUserByEmail(req.Email)
+	user, err := repository.GetUserByEmail(req.Email)
 	if err != nil {
 		slog.Error("failed to get user by email", "detail", err)
 		return InternalError(c)
@@ -147,7 +147,7 @@ func Login(c *fiber.Ctx) error {
 		return c.Status(401).JSON(fiber.Map{"message": "invalid credentials"})
 	}
 
-	credential, err := crud.GetUserCredentialById(user.ID)
+	credential, err := repository.GetUserCredentialById(user.ID)
 	if err != nil {
 		slog.Error("failed to get credential by userid", "detail", err)
 		return InternalError(c)
@@ -164,7 +164,7 @@ func Login(c *fiber.Ctx) error {
 	}
 
 	// generate & set refresh token into cookie
-	refreshToken, err := crud.CreateOrUpdateUserRefreshToken(user.ID)
+	refreshToken, err := repository.CreateOrUpdateUserRefreshToken(user.ID)
 	if err != nil {
 		slog.Error("failed to create/update refresh token", "detail", err)
 		return InternalError(c)
@@ -217,7 +217,7 @@ func Refresh(c *fiber.Ctx) error {
 	userId := c.Locals("user_id").(uint)
 
 	// generate & set refresh token into cookie
-	refreshToken, err := crud.CreateOrUpdateUserRefreshToken(userId)
+	refreshToken, err := repository.CreateOrUpdateUserRefreshToken(userId)
 	if err != nil {
 		slog.Error("failed to create/update refresh token", "detail", err)
 		return InternalError(c)
