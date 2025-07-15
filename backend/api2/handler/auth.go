@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
+	"gityard-api/model"
 	"gityard-api/security"
 	"gityard-api/service"
 	"log/slog"
@@ -11,6 +12,35 @@ import (
 )
 
 var validate = validator.New(validator.WithRequiredStructEnabled())
+
+func setTokensAndRespond(c *fiber.Ctx, userId uint, refreshToken *model.UserRefreshToken) error {
+	c.Cookie(&fiber.Cookie{
+		Name:     "refresh_token",
+		Value:    refreshToken.RefreshToken,
+		Expires:  refreshToken.ExpiresAt,
+		Secure:   false, // 本番環境ではtrueにすべき
+		HTTPOnly: true,
+		SameSite: "strict",
+	})
+
+	accessToken, err := security.GenerateAccessToken(userId)
+	if err != nil {
+		slog.Error("failed to generate access token", "detail", err)
+		return InternalError(c)
+	}
+
+	type Response struct {
+		AccessToken string `json:"access_token"`
+		TokenType   string `json:"token_type"`
+		ExpiresIn   int64  `json:"expires_in"`
+	}
+	res := Response{
+		AccessToken: accessToken.Body,
+		TokenType:   accessToken.Type,
+		ExpiresIn:   int64(accessToken.ExpiresIn.Seconds()),
+	}
+	return c.JSON(res)
+}
 
 // SignUp handler for /signup
 func SignUp(c *fiber.Ctx) error {
@@ -38,31 +68,7 @@ func SignUp(c *fiber.Ctx) error {
 		return InternalError(c)
 	}
 
-	c.Cookie(&fiber.Cookie{
-		Name:     "refresh_token",
-		Value:    refreshToken.RefreshToken,
-		Expires:  refreshToken.ExpiresAt,
-		Secure:   false,
-		HTTPOnly: true,
-		SameSite: "strict",
-	})
-
-	accessToken, err := security.GenerateAccessToken(user.ID)
-	if err != nil {
-		slog.Error("failed to generate access token", "detail", err)
-		return InternalError(c)
-	}
-
-	type Response struct {
-		AccessToken string `json:"access_token"`
-		TokenType   string `json:"token_type"`
-		ExpiresIn   int64  `json:"expires_in"` // sec
-	}
-	res := new(Response)
-	res.AccessToken = accessToken.Body
-	res.TokenType = accessToken.Type
-	res.ExpiresIn = int64(accessToken.ExpiresIn.Seconds())
-	return c.JSON(*res)
+	return setTokensAndRespond(c, user.ID, refreshToken)
 }
 
 // Login handler for /login
@@ -89,31 +95,7 @@ func Login(c *fiber.Ctx) error {
 		return InternalError(c)
 	}
 
-	c.Cookie(&fiber.Cookie{
-		Name:     "refresh_token",
-		Value:    refreshToken.RefreshToken,
-		Expires:  refreshToken.ExpiresAt,
-		Secure:   false,
-		HTTPOnly: true,
-		SameSite: "strict",
-	})
-
-	accessToken, err := security.GenerateAccessToken(user.ID)
-	if err != nil {
-		slog.Error("failed to generate access token", "detail", err)
-		return InternalError(c)
-	}
-
-	type Response struct {
-		AccessToken string `json:"access_token"`
-		TokenType   string `json:"token_type"`
-		ExpiresIn   int64  `json:"expires_in"` // sec
-	}
-	res := new(Response)
-	res.AccessToken = accessToken.Body
-	res.TokenType = accessToken.Type
-	res.ExpiresIn = int64(accessToken.ExpiresIn.Seconds())
-	return c.JSON(*res)
+	return setTokensAndRespond(c, user.ID, refreshToken)
 }
 
 // ref: https://github.com/gofiber/fiber/issues/1127
@@ -178,29 +160,5 @@ func Refresh(c *fiber.Ctx) error {
 		return InternalError(c)
 	}
 
-	c.Cookie(&fiber.Cookie{
-		Name:     "refresh_token",
-		Value:    newRefreshToken.RefreshToken,
-		Expires:  newRefreshToken.ExpiresAt,
-		Secure:   false,
-		HTTPOnly: true,
-		SameSite: "strict",
-	})
-
-	accessToken, err := security.GenerateAccessToken(userId)
-	if err != nil {
-		slog.Error("failed to generate access token", "detail", err)
-		return InternalError(c)
-	}
-
-	type Response struct {
-		AccessToken string `json:"access_token"`
-		TokenType   string `json:"token_type"`
-		ExpiresIn   int64  `json:"expires_in"` // sec
-	}
-	res := new(Response)
-	res.AccessToken = accessToken.Body
-	res.TokenType = accessToken.Type
-	res.ExpiresIn = int64(accessToken.ExpiresIn.Seconds())
-	return c.JSON(*res)
+	return setTokensAndRespond(c, userId, newRefreshToken)
 }
