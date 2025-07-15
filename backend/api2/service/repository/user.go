@@ -2,17 +2,13 @@ package repository
 
 import (
 	"errors"
-	"fmt"
-	"gityard-api/database"
 	"gityard-api/model"
 	"gityard-api/security"
 	"gorm.io/gorm"
 	"time"
 )
 
-func CreateUser(email string) (*model.User, error) {
-	db := database.DB
-
+func CreateUser(db *gorm.DB, email string) (*model.User, error) {
 	user := new(model.User)
 	user.Email = &email
 
@@ -23,9 +19,18 @@ func CreateUser(email string) (*model.User, error) {
 	return user, nil
 }
 
-func GetUserByEmail(email string) (*model.User, error) {
-	db := database.DB
+func GetUserById(db *gorm.DB, userId uint) (*model.User, error) {
+	var user model.User
+	if err := db.Model(&user).Where(&model.User{ID: userId}).First(&user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &user, nil
+}
 
+func GetUserByEmail(db *gorm.DB, email string) (*model.User, error) {
 	var user model.User
 	if err := db.Model(&user).Where(&model.User{Email: &email}).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -37,9 +42,7 @@ func GetUserByEmail(email string) (*model.User, error) {
 	return &user, nil
 }
 
-func CreateUserCredential(userId uint, plainPassword string) (*model.UserCredential, error) {
-	db := database.DB
-
+func CreateUserCredential(db *gorm.DB, userId uint, plainPassword string) (*model.UserCredential, error) {
 	hashedPassword, err := security.HashPassword(plainPassword)
 	if err != nil {
 		return nil, err
@@ -56,9 +59,7 @@ func CreateUserCredential(userId uint, plainPassword string) (*model.UserCredent
 	return credential, nil
 }
 
-func GetUserCredentialById(userId uint) (*model.UserCredential, error) {
-	db := database.DB
-
+func GetUserCredentialById(db *gorm.DB, userId uint) (*model.UserCredential, error) {
 	var credential model.UserCredential
 	if err := db.Model(&credential).Where(&model.UserCredential{UserID: userId}).First(&credential).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -70,9 +71,7 @@ func GetUserCredentialById(userId uint) (*model.UserCredential, error) {
 	return &credential, nil
 }
 
-func CreateOrUpdateUserRefreshToken(userId uint) (*model.UserRefreshToken, error) {
-	db := database.DB
-
+func CreateOrUpdateUserRefreshToken(db *gorm.DB, userId uint) (*model.UserRefreshToken, error) {
 	refreshToken, err := security.GenerateRefreshToken(userId)
 	if err != nil {
 		return nil, err
@@ -91,9 +90,7 @@ func CreateOrUpdateUserRefreshToken(userId uint) (*model.UserRefreshToken, error
 	return &userRefreshToken, nil
 }
 
-func GetUserRefreshTokenById(userId uint) (*model.UserRefreshToken, error) {
-	db := database.DB
-
+func GetUserRefreshTokenById(db *gorm.DB, userId uint) (*model.UserRefreshToken, error) {
 	var refreshToken model.UserRefreshToken
 	if err := db.Model(&refreshToken).Where(&model.UserRefreshToken{UserID: userId}).First(&refreshToken).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -105,31 +102,6 @@ func GetUserRefreshTokenById(userId uint) (*model.UserRefreshToken, error) {
 	return &refreshToken, nil
 }
 
-func UpdateUserRefreshToken(userId uint) (*model.UserRefreshToken, error) {
-	db := database.DB
-
-	userRefreshToken, err := GetUserRefreshTokenById(userId)
-	if err != nil {
-		return nil, err
-	}
-	if userRefreshToken == nil {
-		return nil, fmt.Errorf("refresh token not found")
-	}
-
-	refreshToken, err := security.GenerateRefreshToken(userId)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := db.Model(userRefreshToken).Update("refresh_token", refreshToken).Error; err != nil {
-		return nil, err
-	}
-
-	return userRefreshToken, nil
-}
-
-func DeleteUserRefreshToken(userId uint) error {
-	db := database.DB
-
+func DeleteUserRefreshToken(db *gorm.DB, userId uint) error {
 	return db.Delete(&model.UserRefreshToken{}, userId).Error
 }
