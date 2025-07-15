@@ -129,7 +129,11 @@ func clearCookies(c *fiber.Ctx, key ...string) {
 
 // Logout handler for /logout
 func Logout(c *fiber.Ctx) error {
-	userId := c.Locals("user_id").(uint)
+	userId, ok := c.Locals("user_id").(uint)
+	if !ok {
+		slog.Error("user_id not found in locals or is not uint")
+		return InternalError(c)
+	}
 
 	// 失効処理に失敗しようがしまいが、さらなる漏洩等を防ぐため消す
 	clearCookies(c, "refresh_token")
@@ -151,8 +155,16 @@ func Logout(c *fiber.Ctx) error {
 }
 
 func Refresh(c *fiber.Ctx) error {
-	userId := c.Locals("user_id").(uint)
-	refreshToken := c.Locals("refresh_token").(string)
+	userId, ok := c.Locals("user_id").(uint)
+	if !ok {
+		slog.Error("user_id not found in locals or is not uint")
+		return InternalError(c)
+	}
+	refreshToken, ok := c.Locals("refresh_token").(string)
+	if !ok {
+		slog.Error("refresh_token not found in locals or is not string")
+		return InternalError(c)
+	}
 
 	newRefreshToken, err := service.Refresh(userId, refreshToken)
 	if err != nil {
