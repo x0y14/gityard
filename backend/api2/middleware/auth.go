@@ -1,12 +1,9 @@
 package middleware
 
 import (
-	"gityard-api/handler"
-	"gityard-api/repository"
+	"github.com/gofiber/fiber/v2"
 	"gityard-api/security"
 	"strings"
-
-	"github.com/gofiber/fiber/v2"
 )
 
 func WithoutAuthInfoProtection(c *fiber.Ctx) error {
@@ -67,21 +64,8 @@ func AuthCookieProtection(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "invalid refresh_token"})
 	}
 
-	refreshToken, err := repository.GetUserRefreshTokenById(userId)
-	if err != nil {
-		return handler.InternalError(c)
-	}
-
-	// 失効チェック
-	if refreshToken == nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "invalid refresh_token"})
-	}
-	if refreshToken.RefreshToken != authCookie {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "invalid refresh_token"})
-	}
-
-	// 4. 情報取り出す
 	c.Locals("user_id", userId)
+	c.Locals("refresh_token", authCookie) // 失効チェックはserviceでやるので伝搬
 
 	return c.Next()
 }

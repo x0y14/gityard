@@ -1,11 +1,11 @@
 package handler
 
 import (
+	"errors"
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
-	"gityard-api/model"
-	"gityard-api/repository"
 	"gityard-api/security"
+	"gityard-api/service"
 	"log/slog"
 	"time"
 )
@@ -32,65 +32,12 @@ func SignUp(c *fiber.Ctx) error {
 		return c.Status(422).JSON(fiber.Map{"message": "invalid request"})
 	}
 
-	// 重複確認
-	dbInUser, err := repository.GetUserByEmail(req.Email)
+	user, refreshToken, err := service.SignUp(req.Email, req.Password, req.HandleName)
 	if err != nil {
-		slog.Error("failed to get user by email", "detail", err)
-		return InternalError(c)
-	}
-	if dbInUser != nil {
-		slog.Info("signup rejected", "reason", "registered email")
-		return c.Status(403).JSON(fiber.Map{"message": "registered email"})
-	}
-
-	dbInHandleName, err := repository.GetHandleNameByName(req.HandleName)
-	if err != nil {
-		slog.Error("failed to get handlename", "detail", err)
-		return InternalError(c)
-	}
-	if dbInHandleName != nil {
-		slog.Info("signup rejected", "reason", "registered handlename")
-		return c.Status(403).JSON(fiber.Map{"message": "registered handlename"})
-	}
-
-	// 登録処理
-	user, err := repository.CreateUser(req.Email)
-	if err != nil {
-		slog.Error("failed to create user", "detail", err)
+		slog.Error("failed to sign up", "detail", err)
 		return InternalError(c)
 	}
 
-	handleName, err := repository.CreateHandleName(req.HandleName)
-	if err != nil {
-		slog.Error("failed to create handlename", "detail", err)
-		return InternalError(c)
-	}
-
-	account, err := repository.CreateAccount(user.ID, handleName.ID, model.PersonalAccount)
-	if err != nil {
-		slog.Error("failed to create account", "detail", err)
-		return InternalError(c)
-	}
-
-	_, err = repository.CreateAccountProfile(account.ID, handleName.Handlename, false)
-	if err != nil {
-		slog.Error("failed to create profile", "detail", err)
-		return InternalError(c)
-	}
-
-	// 認証情報作成
-	_, err = repository.CreateUserCredential(user.ID, req.Password)
-	if err != nil {
-		slog.Error("failed to create credential", "detail", err)
-		return InternalError(c)
-	}
-
-	// generate & set refresh token into cookie
-	refreshToken, err := repository.CreateOrUpdateUserRefreshToken(user.ID)
-	if err != nil {
-		slog.Error("failed to create or update refresh token", "detail", err)
-		return InternalError(c)
-	}
 	c.Cookie(&fiber.Cookie{
 		Name:     "refresh_token",
 		Value:    refreshToken.RefreshToken,
@@ -136,39 +83,12 @@ func Login(c *fiber.Ctx) error {
 		return c.Status(422).JSON(fiber.Map{"message": "invalid request"})
 	}
 
-	user, err := repository.GetUserByEmail(req.Email)
+	user, refreshToken, err := service.Login(req.Email, req.Password)
 	if err != nil {
-		slog.Error("failed to get user by email", "detail", err)
+		slog.Error("failed to login", "detail", err)
 		return InternalError(c)
 	}
 
-	if user == nil {
-		slog.Info("login rejected", "reason", "not registered email")
-		return c.Status(401).JSON(fiber.Map{"message": "invalid credentials"})
-	}
-
-	credential, err := repository.GetUserCredentialById(user.ID)
-	if err != nil {
-		slog.Error("failed to get credential by userid", "detail", err)
-		return InternalError(c)
-	}
-
-	if credential == nil {
-		slog.Info("login rejected", "reason", "not registered credential")
-		return c.Status(401).JSON(fiber.Map{"message": "invalid credentials"})
-	}
-
-	if security.VerifyPassword(req.Password, credential.HashedPassword) == false {
-		slog.Info("login rejected", "reason", "password does not match")
-		return c.Status(401).JSON(fiber.Map{"message": "invalid credentials"})
-	}
-
-	// generate & set refresh token into cookie
-	refreshToken, err := repository.CreateOrUpdateUserRefreshToken(user.ID)
-	if err != nil {
-		slog.Error("failed to create/update refresh token", "detail", err)
-		return InternalError(c)
-	}
 	c.Cookie(&fiber.Cookie{
 		Name:     "refresh_token",
 		Value:    refreshToken.RefreshToken,
@@ -196,7 +116,8 @@ func Login(c *fiber.Ctx) error {
 	return c.JSON(*res)
 }
 
-func ClearCookies(c *fiber.Ctx, key ...string) {
+// ref: https://github.com/gofiber/fiber/issues/1127
+func clearCookies(c *fiber.Ctx, key ...string) {
 	for i := range key {
 		c.Cookie(&fiber.Cookie{
 			Name:    key[i],
@@ -208,24 +129,47 @@ func ClearCookies(c *fiber.Ctx, key ...string) {
 
 // Logout handler for /logout
 func Logout(c *fiber.Ctx) error {
-	//c.ClearCookie("refresh_token")
-	ClearCookies(c, "refresh_token") // ref: https://github.com/gofiber/fiber/issues/1127
+	userId := c.Locals("user_id").(uint)
+
+	// 失効処理に失敗しようがしまいが、さらなる漏洩等を防ぐため消す
+	clearCookies(c, "refresh_token")
+
+	err := service.Logout(userId)
+	if err != nil {
+		// トークン漏洩の検出のため
+		var revokedErr *service.ErrRevokedRefreshTokenProvided
+		if errors.As(err, &revokedErr) {
+			slog.Warn("revoked refresh_token provided", "user_id", userId)
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "revoked refresh_token provided"})
+		}
+
+		slog.Error("failed to logout", "detail", err)
+		return InternalError(c)
+	}
+
 	return c.Status(200).JSON(fiber.Map{})
 }
 
 func Refresh(c *fiber.Ctx) error {
 	userId := c.Locals("user_id").(uint)
+	refreshToken := c.Locals("refresh_token").(string)
 
-	// generate & set refresh token into cookie
-	refreshToken, err := repository.CreateOrUpdateUserRefreshToken(userId)
+	newRefreshToken, err := service.Refresh(userId, refreshToken)
 	if err != nil {
-		slog.Error("failed to create/update refresh token", "detail", err)
+		var revokedErr *service.ErrRevokedRefreshTokenProvided
+		if errors.As(err, &revokedErr) {
+			slog.Warn("revoked refresh_token provided", "user_id", userId)
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "revoked refresh_token provided"})
+		}
+
+		slog.Error("failed to refresh token", "detail", err)
 		return InternalError(c)
 	}
+
 	c.Cookie(&fiber.Cookie{
 		Name:     "refresh_token",
-		Value:    refreshToken.RefreshToken,
-		Expires:  refreshToken.ExpiresAt,
+		Value:    newRefreshToken.RefreshToken,
+		Expires:  newRefreshToken.ExpiresAt,
 		Secure:   false,
 		HTTPOnly: true,
 		SameSite: "strict",
