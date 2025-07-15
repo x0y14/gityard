@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"gityard-api/database"
 	"gityard-api/model"
-	"gityard-api/secutiry"
+	"gityard-api/security"
 	"gorm.io/gorm"
 	"time"
 )
@@ -40,7 +40,7 @@ func GetUserByEmail(email string) (*model.User, error) {
 func CreateUserCredential(userId uint, plainPassword string) (*model.UserCredential, error) {
 	db := database.DB
 
-	hashedPassword, err := secutiry.HashPassword(plainPassword)
+	hashedPassword, err := security.HashPassword(plainPassword)
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +73,7 @@ func GetUserCredentialById(userId uint) (*model.UserCredential, error) {
 func CreateOrUpdateUserRefreshToken(userId uint) (*model.UserRefreshToken, error) {
 	db := database.DB
 
-	refreshToken, err := secutiry.GenerateRefreshToken(userId)
+	refreshToken, err := security.GenerateRefreshToken(userId)
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +116,7 @@ func UpdateUserRefreshToken(userId uint) (*model.UserRefreshToken, error) {
 		return nil, fmt.Errorf("refresh token not found")
 	}
 
-	refreshToken, err := secutiry.GenerateRefreshToken(userId)
+	refreshToken, err := security.GenerateRefreshToken(userId)
 	if err != nil {
 		return nil, err
 	}

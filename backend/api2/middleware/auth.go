@@ -3,7 +3,7 @@ package middleware
 import (
 	"gityard-api/crud"
 	"gityard-api/handler"
-	"gityard-api/secutiry"
+	"gityard-api/security"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
@@ -44,7 +44,7 @@ func AuthHeaderProtection(c *fiber.Ctx) error {
 	tokenString := parts[1] // [0] == "Bearer"
 
 	// 3. トークンを検証
-	userId, ok := secutiry.VerifyAccessToken(tokenString)
+	userId, ok := security.VerifyAccessToken(tokenString)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "invalid access_token"})
 	}
@@ -62,7 +62,7 @@ func AuthCookieProtection(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "authorization cookie is missing"})
 	}
 
-	userId, ok := secutiry.VerifyRefreshToken(authCookie)
+	userId, ok := security.VerifyRefreshToken(authCookie)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "invalid refresh_token"})
 	}

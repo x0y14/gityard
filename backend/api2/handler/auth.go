@@ -5,7 +5,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"gityard-api/crud"
 	"gityard-api/model"
-	"gityard-api/secutiry"
+	"gityard-api/security"
 	"log/slog"
 	"time"
 )
@@ -100,7 +100,7 @@ func SignUp(c *fiber.Ctx) error {
 		SameSite: "strict",
 	})
 
-	accessToken, err := secutiry.GenerateAccessToken(user.ID)
+	accessToken, err := security.GenerateAccessToken(user.ID)
 	if err != nil {
 		slog.Error("failed to generate access token", "detail", err)
 		return InternalError(c)
@@ -158,7 +158,7 @@ func Login(c *fiber.Ctx) error {
 		return c.Status(401).JSON(fiber.Map{"message": "invalid credentials"})
 	}
 
-	if secutiry.VerifyPassword(req.Password, credential.HashedPassword) == false {
+	if security.VerifyPassword(req.Password, credential.HashedPassword) == false {
 		slog.Info("login rejected", "reason", "password does not match")
 		return c.Status(401).JSON(fiber.Map{"message": "invalid credentials"})
 	}
@@ -178,7 +178,7 @@ func Login(c *fiber.Ctx) error {
 		SameSite: "strict",
 	})
 
-	accessToken, err := secutiry.GenerateAccessToken(user.ID)
+	accessToken, err := security.GenerateAccessToken(user.ID)
 	if err != nil {
 		slog.Error("failed to generate access token", "detail", err)
 		return InternalError(c)
@@ -231,7 +231,7 @@ func Refresh(c *fiber.Ctx) error {
 		SameSite: "strict",
 	})
 
-	accessToken, err := secutiry.GenerateAccessToken(userId)
+	accessToken, err := security.GenerateAccessToken(userId)
 	if err != nil {
 		slog.Error("failed to generate access token", "detail", err)
 		return InternalError(c)
