@@ -21,14 +21,14 @@ func SignUp(c *fiber.Ctx) error {
 	}
 	req := new(Request)
 	if err := c.BodyParser(req); err != nil {
-		slog.Debug("failed to parse", "request body", req)
+		slog.Debug("failed to parse", "detail", err)
 		return c.Status(422).JSON(fiber.Map{"message": "invalid request"})
 	}
 
 	// validation
 	err := validate.Struct(req)
 	if err != nil {
-		slog.Debug("failed to validate", "request body", req)
+		slog.Debug("failed to validate", "detail", err)
 		return c.Status(422).JSON(fiber.Map{"message": "invalid request"})
 	}
 
@@ -73,13 +73,13 @@ func Login(c *fiber.Ctx) error {
 	}
 	req := new(Request)
 	if err := c.BodyParser(req); err != nil {
-		slog.Debug("failed to parse", "request body", req)
+		slog.Debug("failed to parse", "detail", err)
 		return c.Status(422).JSON(fiber.Map{"message": "invalid request"})
 	}
 	// validation
 	err := validate.Struct(req)
 	if err != nil {
-		slog.Debug("failed to validate", "request body", req)
+		slog.Debug("failed to validate", "detail", err)
 		return c.Status(422).JSON(fiber.Map{"message": "invalid request"})
 	}
 
