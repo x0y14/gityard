@@ -57,7 +57,7 @@ create table accounts (
 create table account_publickeys ( -- openssh format
     id bigint not null auto_increment,
     account_id bigint not null,
-    fulltext text not null,
+    fullkeytext text not null,
     algorithm varchar(50) not null,
     keybody text not null,
     comment varchar(255) not null,
