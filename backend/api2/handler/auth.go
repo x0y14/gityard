@@ -65,6 +65,18 @@ func SignUp(c *fiber.Ctx) error {
 
 	user, refreshToken, err := service.SignUp(req.Email, req.Password, req.HandleName)
 	if err != nil {
+		var registeredEmailErr *service.ErrRegisteredEmail
+		if errors.As(err, &registeredEmailErr) {
+			slog.Info("sign up rejected", "reason", "registered email")
+			return c.Status(fiber.StatusConflict).JSON(fiber.Map{"message": "registered email"})
+		}
+
+		var registeredHandleNameErr *service.ErrRegisteredHandleName
+		if errors.As(err, &registeredHandleNameErr) {
+			slog.Info("sign up rejected", "reason", "registered handlename")
+			return c.Status(fiber.StatusConflict).JSON(fiber.Map{"message": "registered handlename"})
+		}
+
 		slog.Error("failed to sign up", "detail", err)
 		return InternalError(c)
 	}
