@@ -4,14 +4,11 @@ import (
 	"fmt"
 	"gityard-api/config"
 	"log"
-	"log/slog"
 	"strconv"
 	"time"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
-
-	"gityard-api/model"
 )
 
 func ConnectDB() {
@@ -43,19 +40,19 @@ func ConnectDB() {
 	}
 
 	fmt.Println("Connection Opened to Database")
-	err = DB.AutoMigrate(
-		&model.User{},
-		&model.UserCredential{},
-		&model.UserRefreshToken{},
-		&model.Handlename{},
-		&model.Account{},
-		&model.AccountProfile{},
-		&model.AccountPublicKey{},
-		&model.Repository{},
-	)
-	if err != nil {
-		slog.Error("failed to migrate db", "detail", err)
-		panic("failed to migrate db")
-	}
-	fmt.Println("Database Migrated")
+	//err = DB.AutoMigrate(
+	//	&model.User{},
+	//	&model.UserCredential{},
+	//	&model.UserRefreshToken{},
+	//	&model.Handlename{},
+	//	&model.Account{},
+	//	&model.AccountProfile{},
+	//	&model.AccountPublicKey{},
+	//	&model.Repository{},
+	//)
+	//if err != nil {
+	//	slog.Error("failed to migrate db", "detail", err)
+	//	panic("failed to migrate db")
+	//}
+	//fmt.Println("Database Migrated")
 }

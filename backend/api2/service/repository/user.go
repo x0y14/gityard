@@ -1,7 +1,9 @@
 package repository
 
 import (
+	"crypto/sha256"
 	"errors"
+	"fmt"
 	"gityard-api/model"
 	"gityard-api/security"
 	"gorm.io/gorm"
@@ -71,15 +73,16 @@ func GetUserCredentialById(db *gorm.DB, userId uint) (*model.UserCredential, err
 	return &credential, nil
 }
 
-func CreateOrUpdateUserRefreshToken(db *gorm.DB, userId uint) (*model.UserRefreshToken, error) {
-	refreshToken, err := security.GenerateRefreshToken(userId)
+func CreateOrUpdateUserRefreshToken(db *gorm.DB, userId uint) (*model.RefreshToken, error) {
+	refreshToken, err := security.GenerateRefreshToken()
 	if err != nil {
 		return nil, err
 	}
 
+	hashedRefreshToken := fmt.Sprintf("%x", sha256.Sum256([]byte(refreshToken.Body)))
 	data := model.UserRefreshToken{
-		RefreshToken: refreshToken.Body,
-		ExpiresAt:    time.Now().Add(refreshToken.ExpiresIn),
+		HashedRefreshToken: hashedRefreshToken,
+		ExpiresAt:          time.Now().Add(refreshToken.ExpiresIn),
 	}
 	userRefreshToken := model.UserRefreshToken{UserID: userId}
 
@@ -87,7 +90,7 @@ func CreateOrUpdateUserRefreshToken(db *gorm.DB, userId uint) (*model.UserRefres
 		return nil, err
 	}
 
-	return &userRefreshToken, nil
+	return refreshToken, nil
 }
 
 func GetUserRefreshTokenById(db *gorm.DB, userId uint) (*model.UserRefreshToken, error) {
@@ -100,6 +103,19 @@ func GetUserRefreshTokenById(db *gorm.DB, userId uint) (*model.UserRefreshToken,
 	}
 
 	return &refreshToken, nil
+}
+
+func GetUserIdByRefreshToken(db *gorm.DB, refreshToken string) (*uint, error) {
+	hashedRefreshToken := fmt.Sprintf("%x", sha256.Sum256([]byte(refreshToken)))
+	var userRefreshToken model.UserRefreshToken
+	if err := db.Model(&userRefreshToken).Where(&model.UserRefreshToken{HashedRefreshToken: hashedRefreshToken}).First(&userRefreshToken).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &userRefreshToken.UserID, nil
 }
 
 func DeleteUserRefreshToken(db *gorm.DB, userId uint) error {

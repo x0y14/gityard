@@ -6,13 +6,14 @@ import (
 	"gityard-api/security"
 	"gityard-api/service/repository"
 	"gorm.io/gorm"
+	"log/slog"
 )
 
-func SignUp(email, password, handlename string) (*model.User, *model.UserRefreshToken, error) {
+func SignUp(email, password, handlename string) (*model.User, *model.RefreshToken, error) {
 	db := database.DB
 
 	var user *model.User
-	var refreshToken *model.UserRefreshToken
+	var refreshToken *model.RefreshToken
 	err := db.Transaction(func(tx *gorm.DB) error {
 		// 登録済みでないかチェック
 		//
@@ -85,11 +86,11 @@ func SignUp(email, password, handlename string) (*model.User, *model.UserRefresh
 	return user, refreshToken, nil
 }
 
-func Login(email, password string) (*model.User, *model.UserRefreshToken, error) {
+func Login(email, password string) (*model.User, *model.RefreshToken, error) {
 	db := database.DB
 
 	var user *model.User
-	var refreshToken *model.UserRefreshToken
+	var refreshToken *model.RefreshToken
 	err := db.Transaction(func(tx *gorm.DB) error {
 		// credentialはuserIdとしか結びついていないので
 		userInDB, err := repository.GetUserByEmail(tx, email)
@@ -136,8 +137,8 @@ func Logout(userId uint) error {
 		if err != nil {
 			return err
 		}
-		if refreshTokenInDB == nil {
-			return &ErrRevokedRefreshTokenProvided{UserId: userId}
+		if refreshTokenInDB == nil { // リフレッシュトークンを削除しようとしたけど、そもそもなかった。な〜ぜな〜ぜ
+			slog.Warn("user refresh token not found")
 		}
 
 		return repository.DeleteUserRefreshToken(tx, userId)
@@ -145,24 +146,22 @@ func Logout(userId uint) error {
 	return err
 }
 
-func Refresh(userId uint, refreshToken string) (*model.UserRefreshToken, error) {
+func Refresh(refreshToken string) (*uint, *model.RefreshToken, error) {
 	db := database.DB
 
-	var newRefreshToken *model.UserRefreshToken
+	var userId *uint
+	var newRefreshToken *model.RefreshToken
 	err := db.Transaction(func(tx *gorm.DB) error {
-		refreshTokenInDB, err := repository.GetUserRefreshTokenById(tx, userId)
+		userIdInDB, err := repository.GetUserIdByRefreshToken(tx, refreshToken)
 		if err != nil {
 			return err
 		}
-		if refreshTokenInDB == nil {
-			return &ErrRevokedRefreshTokenProvided{UserId: userId}
+		if userIdInDB == nil {
+			return &ErrInvalidRefreshTokenProvided{}
 		}
+		userId = userIdInDB
 
-		if refreshToken != refreshTokenInDB.RefreshToken {
-			return &ErrRevokedRefreshTokenProvided{UserId: userId}
-		}
-
-		generatedRefreshToken, err := repository.CreateOrUpdateUserRefreshToken(tx, userId)
+		generatedRefreshToken, err := repository.CreateOrUpdateUserRefreshToken(tx, *userIdInDB)
 		if err != nil {
 			return err
 		}
@@ -171,8 +170,8 @@ func Refresh(userId uint, refreshToken string) (*model.UserRefreshToken, error) 
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return newRefreshToken, nil
+	return userId, newRefreshToken, nil
 }

@@ -43,10 +43,9 @@ func (err *ErrPasswordMissMatch) Error() string {
 	return fmt.Sprintf("Password MissMatch with HashedOne: user_id=%v", err.UserId)
 }
 
-type ErrRevokedRefreshTokenProvided struct {
-	UserId uint
+type ErrInvalidRefreshTokenProvided struct {
 }
 
-func (err *ErrRevokedRefreshTokenProvided) Error() string {
-	return fmt.Sprintf("Revoked RefreshToken Provided: user_id=%v", err.UserId)
+func (err *ErrInvalidRefreshTokenProvided) Error() string {
+	return fmt.Sprintf("Invalid RefreshToken Provided")
 }

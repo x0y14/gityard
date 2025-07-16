@@ -13,14 +13,15 @@ import (
 
 var validate = validator.New(validator.WithRequiredStructEnabled())
 
-func setTokensAndRespond(c *fiber.Ctx, userId uint, refreshToken *model.UserRefreshToken) error {
+func setTokensAndRespond(c *fiber.Ctx, userId uint, refreshToken *model.RefreshToken) error {
 	c.Cookie(&fiber.Cookie{
 		Name:     "refresh_token",
-		Value:    refreshToken.RefreshToken,
-		Expires:  refreshToken.ExpiresAt,
+		Value:    refreshToken.Body,
+		MaxAge:   int(refreshToken.ExpiresIn.Seconds()),
 		Secure:   false, // 本番環境ではtrueにすべき
 		HTTPOnly: true,
 		SameSite: "strict",
+		Path:     "/api/v1/auth/refresh",
 	})
 
 	accessToken, err := security.GenerateAccessToken(userId)
@@ -117,18 +118,8 @@ func Logout(c *fiber.Ctx) error {
 		return InternalError(c)
 	}
 
-	// 失効処理に失敗しようがしまいが、さらなる漏洩等を防ぐため消す
-	clearCookies(c, "refresh_token")
-
 	err := service.Logout(userId)
 	if err != nil {
-		// トークン漏洩の検出のため
-		var revokedErr *service.ErrRevokedRefreshTokenProvided
-		if errors.As(err, &revokedErr) {
-			slog.Warn("revoked refresh_token provided", "user_id", userId)
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "revoked refresh_token provided"})
-		}
-
 		slog.Error("failed to logout", "detail", err)
 		return InternalError(c)
 	}
@@ -137,28 +128,22 @@ func Logout(c *fiber.Ctx) error {
 }
 
 func Refresh(c *fiber.Ctx) error {
-	userId, ok := c.Locals("user_id").(uint)
-	if !ok {
-		slog.Error("user_id not found in locals or is not uint")
-		return InternalError(c)
-	}
-	refreshToken, ok := c.Locals("refresh_token").(string)
-	if !ok {
-		slog.Error("refresh_token not found in locals or is not string")
-		return InternalError(c)
+	refreshToken := c.Cookies("refresh_token", "")
+	if refreshToken == "" {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "authorization cookie is missing"})
 	}
 
-	newRefreshToken, err := service.Refresh(userId, refreshToken)
+	userId, newRefreshToken, err := service.Refresh(refreshToken)
 	if err != nil {
-		var revokedErr *service.ErrRevokedRefreshTokenProvided
-		if errors.As(err, &revokedErr) {
-			slog.Warn("revoked refresh_token provided", "user_id", userId)
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "revoked refresh_token provided"})
+		var invalidErr *service.ErrInvalidRefreshTokenProvided
+		if errors.As(err, &invalidErr) {
+			slog.Warn("invalid refresh_token provided")
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "invalid refresh_token provided"})
 		}
 
 		slog.Error("failed to refresh token", "detail", err)
 		return InternalError(c)
 	}
 
-	return setTokensAndRespond(c, userId, newRefreshToken)
+	return setTokensAndRespond(c, *userId, newRefreshToken)
 }

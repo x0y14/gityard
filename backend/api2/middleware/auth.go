@@ -13,8 +13,8 @@ func WithoutAuthInfoProtection(c *fiber.Ctx) error {
 			"message": "authorization header exists",
 		})
 	}
-	refreshTokenCookie := c.Cookies("refresh_token", "")
-	if refreshTokenCookie != "" {
+	refreshToken := c.Cookies("refresh_token", "")
+	if refreshToken != "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"message": "authorization cookie exists",
 		})
@@ -38,10 +38,10 @@ func AuthHeaderProtection(c *fiber.Ctx) error {
 			"message": "invalid token format",
 		})
 	}
-	tokenString := parts[1] // [0] == "Bearer"
+	accessToken := parts[1] // [0] == "Bearer"
 
 	// 3. トークンを検証
-	userId, ok := security.VerifyAccessToken(tokenString)
+	userId, ok := security.VerifyAccessToken(accessToken)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "invalid access_token"})
 	}
@@ -52,20 +52,21 @@ func AuthHeaderProtection(c *fiber.Ctx) error {
 	return c.Next()
 }
 
-func AuthCookieProtection(c *fiber.Ctx) error {
-	// 1. "Authorization"クッキーを取得
-	authCookie := c.Cookies("refresh_token", "")
-	if authCookie == "" {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "authorization cookie is missing"})
-	}
-
-	userId, ok := security.VerifyRefreshToken(authCookie)
-	if !ok {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "invalid refresh_token"})
-	}
-
-	c.Locals("user_id", userId)
-	c.Locals("refresh_token", authCookie) // 失効チェックはserviceでやるので伝搬
-
-	return c.Next()
-}
+//
+//func AuthCookieProtection(c *fiber.Ctx) error {
+//	// 1. "Authorization"クッキーを取得
+//	authCookie := c.Cookies("refresh_token", "")
+//	if authCookie == "" {
+//		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "authorization cookie is missing"})
+//	}
+//
+//	userId, ok := security.VerifyRefreshToken(authCookie)
+//	if !ok {
+//		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "invalid refresh_token"})
+//	}
+//
+//	c.Locals("user_id", userId)
+//	c.Locals("refresh_token", authCookie) // 失効チェックはserviceでやるので伝搬
+//
+//	return c.Next()
+//}
