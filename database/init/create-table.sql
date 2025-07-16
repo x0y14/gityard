@@ -21,12 +21,13 @@ create table user_credentials (
 );
 create table user_refresh_tokens (
     user_id bigint not null,
-    refresh_token varchar(255) not null,
+    hashed_refresh_token varchar(255) not null,
     expires_at datetime not null, -- 定期的にDBスキャンして期限切れを削除するため
     created_at datetime default current_timestamp,
     updated_at datetime default current_timestamp on update current_timestamp,
 
     primary key(user_id),
+    unique index uq_idx_users_hashed_refresh_token (hashed_refresh_token),
     foreign key(user_id) references users(id) on delete cascade -- ユーザ削除時に一緒に消す
 );
 
