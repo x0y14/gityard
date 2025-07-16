@@ -31,7 +31,7 @@ type Account struct {
 type AccountPublicKey struct {
 	ID          uint      `gorm:"primaryKey"                                                                                                            json:"id"`
 	AccountID   uint      `gorm:"not null;uniqueIndex:idx_account_id_fingerprint,priority:1"                                                            json:"account_id"`
-	Fulltext    string    `gorm:"type:text;not null"                                                                                                    json:"fulltext"`
+	FullKeyText string    `gorm:"type:text;not null"                                                                                                    json:"fullkeytext"`
 	Algorithm   string    `gorm:"type:varchar(50);not null"                                                                                             json:"algorithm"`
 	Keybody     string    `gorm:"type:text;not null"                                                                                                    json:"keybody"`
 	Comment     string    `gorm:"type:varchar(255);not null"                                                                                            json:"comment"`
