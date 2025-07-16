@@ -41,12 +41,12 @@ type AccountPublicKey struct {
 
 // AccountProfile はアカウントの公開プロフィール情報を表します。
 type AccountProfile struct {
-	AccountID   uint      `gorm:"primaryKey"                                                                          json:"account_id"`
-	Displayname string    `gorm:"type:varchar(255);not null;default:'unknown';index:idx_account_profiles_displayname" json:"displayname"`
-	Iconpath    string    `gorm:"type:varchar(255);not null;default:'noimage001'"                                     json:"icon_path"`
-	IsPrivate   bool      `gorm:"type:tinyint(1);not null;default:0"                                                  json:"is_private"`
-	CreatedAt   time.Time `gorm:"default:current_timestamp(3)"                                                        json:"created_at"`
-	UpdatedAt   time.Time `gorm:"default:current_timestamp(3);onUpdate:current_timestamp(3)"                          json:"updated_at"`
+	AccountID   uint      `gorm:"primaryKey;autoIncrement:false"                                                       json:"account_id"`
+	Displayname string    `gorm:"type:varchar(255);not null;default:'unknown';index:idx_account_profiles_displayname"  json:"displayname"`
+	Iconpath    string    `gorm:"type:varchar(255);not null;default:'noimage001'"                                      json:"icon_path"`
+	IsPrivate   bool      `gorm:"type:tinyint(1);not null;default:0"                                                   json:"is_private"`
+	CreatedAt   time.Time `gorm:"default:current_timestamp(3)"                                                         json:"created_at"`
+	UpdatedAt   time.Time `gorm:"default:current_timestamp(3);onUpdate:current_timestamp(3)"                           json:"updated_at"`
 }
 
 type AccountKind int
