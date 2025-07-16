@@ -28,9 +28,9 @@ type UserCredential struct {
 
 // UserRefreshToken はユーザーのリフレッシュトークンを管理します。
 type UserRefreshToken struct {
-	UserID       uint      `gorm:"primaryKey"                                                 json:"user_id"`
-	RefreshToken string    `gorm:"type:varchar(255);not null"                                 json:"refresh_token"`
-	ExpiresAt    time.Time `gorm:"not null"                                                   json:"expires_at"`
-	CreatedAt    time.Time `gorm:"default:current_timestamp(3)"                               json:"craeted_at"`
-	UpdatedAt    time.Time `gorm:"default:current_timestamp(3);onUpdate:current_timestamp(3)" json:"updated_at"`
+	UserID             uint      `gorm:"primaryKey"                                                               json:"user_id"`
+	HashedRefreshToken string    `gorm:"type:varchar(255);not null;uniqueIndex:uq_idx_users_hashed_refresh_token" json:"hashed_refresh_token"`
+	ExpiresAt          time.Time `gorm:"not null"                                                                 json:"expires_at"`
+	CreatedAt          time.Time `gorm:"default:current_timestamp(3)"                                             json:"created_at"`
+	UpdatedAt          time.Time `gorm:"default:current_timestamp(3);onUpdate:current_timestamp(3)"               json:"updated_at"`
 }
