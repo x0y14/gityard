@@ -16,7 +16,6 @@ func SignUp(email, password, handlename string) (*model.User, *model.RefreshToke
 	var refreshToken *model.RefreshToken
 	err := db.Transaction(func(tx *gorm.DB) error {
 		// 登録済みでないかチェック
-		//
 		userInDB, err := repository.GetUserByEmail(tx, email)
 		if err != nil {
 			return err
@@ -24,7 +23,7 @@ func SignUp(email, password, handlename string) (*model.User, *model.RefreshToke
 		if userInDB != nil { // email登録済み
 			return &ErrRegisteredEmail{Email: email}
 		}
-		//
+
 		handlenameInDB, err := repository.GetHandleNameByName(tx, handlename)
 		if err != nil {
 			return err
@@ -34,18 +33,17 @@ func SignUp(email, password, handlename string) (*model.User, *model.RefreshToke
 		}
 
 		// 登録処理
-		//
 		registeredUser, err := repository.CreateUser(tx, email)
 		if err != nil {
 			return err
 		}
 		user = registeredUser
-		//
+
 		registeredHandleName, err := repository.CreateHandleName(tx, handlename)
 		if err != nil {
 			return err
 		}
-		//
+
 		registeredAccount, err := repository.CreateAccount(
 			tx,
 			registeredUser.ID,
@@ -55,7 +53,7 @@ func SignUp(email, password, handlename string) (*model.User, *model.RefreshToke
 		if err != nil {
 			return err
 		}
-		//
+
 		_, err = repository.CreateAccountProfile(
 			tx,
 			registeredAccount.ID,
@@ -65,7 +63,7 @@ func SignUp(email, password, handlename string) (*model.User, *model.RefreshToke
 		if err != nil {
 			return err
 		}
-		//
+
 		_, err = repository.CreateUserCredential(tx, registeredUser.ID, password)
 		if err != nil {
 			return err
