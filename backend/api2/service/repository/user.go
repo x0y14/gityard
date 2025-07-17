@@ -105,17 +105,17 @@ func GetUserRefreshTokenById(db *gorm.DB, userId uint) (*model.UserRefreshToken,
 	return &refreshToken, nil
 }
 
-func GetUserIdByRefreshToken(db *gorm.DB, refreshToken string) (*uint, error) {
+func GetUserIdAndExpiresAtByRefreshToken(db *gorm.DB, refreshToken string) (*uint, *time.Time, error) {
 	hashedRefreshToken := fmt.Sprintf("%x", sha256.Sum256([]byte(refreshToken)))
 	var userRefreshToken model.UserRefreshToken
 	if err := db.Model(&userRefreshToken).Where(&model.UserRefreshToken{HashedRefreshToken: hashedRefreshToken}).First(&userRefreshToken).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
+			return nil, nil, nil
 		}
-		return nil, err
+		return nil, nil, err
 	}
 
-	return &userRefreshToken.UserID, nil
+	return &userRefreshToken.UserID, &userRefreshToken.ExpiresAt, nil
 }
 
 func DeleteUserRefreshToken(db *gorm.DB, userId uint) error {
