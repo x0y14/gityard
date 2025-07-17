@@ -2,7 +2,6 @@ package handler
 
 import (
 	"errors"
-	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 	"gityard-api/model"
 	"gityard-api/security"
@@ -10,8 +9,6 @@ import (
 	"log/slog"
 	"time"
 )
-
-var validate = validator.New(validator.WithRequiredStructEnabled())
 
 func setTokensAndRespond(c *fiber.Ctx, userId uint, refreshToken *model.RefreshToken) error {
 	c.Cookie(&fiber.Cookie{
