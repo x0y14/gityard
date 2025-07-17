@@ -51,22 +51,3 @@ func AuthHeaderProtection(c *fiber.Ctx) error {
 
 	return c.Next()
 }
-
-//
-//func AuthCookieProtection(c *fiber.Ctx) error {
-//	// 1. "Authorization"クッキーを取得
-//	authCookie := c.Cookies("refresh_token", "")
-//	if authCookie == "" {
-//		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "authorization cookie is missing"})
-//	}
-//
-//	userId, ok := security.VerifyRefreshToken(authCookie)
-//	if !ok {
-//		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "invalid refresh_token"})
-//	}
-//
-//	c.Locals("user_id", userId)
-//	c.Locals("refresh_token", authCookie) // 失効チェックはserviceでやるので伝搬
-//
-//	return c.Next()
-//}
