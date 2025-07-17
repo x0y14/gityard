@@ -49,3 +49,10 @@ type ErrInvalidRefreshTokenProvided struct {
 func (err *ErrInvalidRefreshTokenProvided) Error() string {
 	return fmt.Sprintf("Invalid RefreshToken Provided")
 }
+
+type ErrExpiredRefreshTokenProvided struct {
+}
+
+func (err *ErrExpiredRefreshTokenProvided) Error() string {
+	return fmt.Sprintf("Expired RefreshToken Provided")
+}

@@ -81,6 +81,7 @@ func SignUp(c *fiber.Ctx) error {
 		return InternalError(c)
 	}
 
+	slog.Info("user signed up successfully", "userId", user.ID, "handleName", req.HandleName)
 	return setTokensAndRespond(c, user.ID, refreshToken)
 }
 
@@ -104,10 +105,30 @@ func Login(c *fiber.Ctx) error {
 
 	user, refreshToken, err := service.Login(req.Email, req.Password)
 	if err != nil {
-		slog.Error("failed to login", "detail", err)
+		var userNotFoundErr *service.ErrUserNotFound
+		if errors.As(err, &userNotFoundErr) {
+			slog.Warn("user login rejected", "reason", "email not registered")
+			return UnauthorizedError(c)
+		}
+
+		var credentialNotFoundErr *service.ErrCredentialNotFound
+		if errors.As(err, &credentialNotFoundErr) {
+			// ユーザは存在しているのにクレデンシャルデータが存在しない
+			slog.Error("user login rejected", "reason", "credential not found")
+			return InternalError(c)
+		}
+
+		var passwordMissMatchErr *service.ErrPasswordMissMatch
+		if errors.As(err, &passwordMissMatchErr) {
+			slog.Warn("user login rejected", "reason", "password miss match", "email", req.Email)
+			return UnauthorizedError(c)
+		}
+
+		slog.Error("user failed to login", "detail", err)
 		return InternalError(c)
 	}
 
+	slog.Info("user logged in successfully", "userId", user.ID)
 	return setTokensAndRespond(c, user.ID, refreshToken)
 }
 
@@ -136,13 +157,14 @@ func Logout(c *fiber.Ctx) error {
 		return InternalError(c)
 	}
 
+	slog.Info("user logged out successfully", "userId", userId)
 	return c.Status(200).JSON(fiber.Map{})
 }
 
 func Refresh(c *fiber.Ctx) error {
 	refreshToken := c.Cookies("refresh_token", "")
 	if refreshToken == "" {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "authorization cookie is missing"})
+		return UnauthorizedError(c)
 	}
 
 	userId, newRefreshToken, err := service.Refresh(refreshToken)
@@ -150,12 +172,18 @@ func Refresh(c *fiber.Ctx) error {
 		var invalidErr *service.ErrInvalidRefreshTokenProvided
 		if errors.As(err, &invalidErr) {
 			slog.Warn("invalid refresh_token provided")
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "invalid refresh_token provided"})
+			return UnauthorizedError(c)
+		}
+		var expiredErr *service.ErrExpiredRefreshTokenProvided
+		if errors.As(err, &expiredErr) {
+			slog.Warn("expired refresh_token provided")
+			return UnauthorizedError(c)
 		}
 
 		slog.Error("failed to refresh token", "detail", err)
 		return InternalError(c)
 	}
 
+	slog.Info("token refreshed successfully", "userId", *userId)
 	return setTokensAndRespond(c, *userId, newRefreshToken)
 }

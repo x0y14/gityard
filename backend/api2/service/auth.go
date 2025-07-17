@@ -7,6 +7,7 @@ import (
 	"gityard-api/service/repository"
 	"gorm.io/gorm"
 	"log/slog"
+	"time"
 )
 
 func SignUp(email, password, handlename string) (*model.User, *model.RefreshToken, error) {
@@ -150,12 +151,15 @@ func Refresh(refreshToken string) (*uint, *model.RefreshToken, error) {
 	var userId *uint
 	var newRefreshToken *model.RefreshToken
 	err := db.Transaction(func(tx *gorm.DB) error {
-		userIdInDB, err := repository.GetUserIdByRefreshToken(tx, refreshToken)
+		userIdInDB, expiresAt, err := repository.GetUserIdAndExpiresAtByRefreshToken(tx, refreshToken)
 		if err != nil {
 			return err
 		}
 		if userIdInDB == nil {
 			return &ErrInvalidRefreshTokenProvided{}
+		}
+		if !time.Now().Before(*expiresAt) {
+			return &ErrExpiredRefreshTokenProvided{}
 		}
 		userId = userIdInDB
 
