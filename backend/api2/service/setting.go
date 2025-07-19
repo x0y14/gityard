@@ -33,7 +33,6 @@ func RegisterSSHPublicKey(userId uint, keyName string, pubkeyFullText string) (*
 
 	alg, body, comment, err := security.ParseSSHKey(pubkeyFullText)
 	if err != nil {
-		slog.Info(pubkeyFullText, err)
 		slog.Info("create ssh pk rejected", "reason", "invalid format")
 		return nil, &ErrInvalidPubkeyProvided{}
 	}
