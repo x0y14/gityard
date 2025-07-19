@@ -20,23 +20,10 @@ type Account struct {
 	UpdatedAt    time.Time `gorm:"default:current_timestamp(3);onUpdate:current_timestamp(3)" json:"updated_at"`
 
 	// リレーションシップ
-	User              User               `gorm:"foreignKey:UserID;constraint:OnDelete:RESTRICT"`
-	Handlename        Handlename         `gorm:"foreignKey:HandlenameID;constraint:OnDelete:RESTRICT"`
-	AccountPublicKeys []AccountPublicKey `gorm:"foreignKey:AccountID"`
-	AccountProfile    AccountProfile     `gorm:"foreignKey:AccountID"`
-	Repositories      []Repository       `gorm:"foreignKey:OwnerAccountID"`
-}
-
-// AccountPublicKey はアカウントに紐づくSSH公開鍵を表します。
-type AccountPublicKey struct {
-	ID          uint      `gorm:"primaryKey"                                                                                                            json:"id"`
-	AccountID   uint      `gorm:"not null;uniqueIndex:idx_account_id_fingerprint,priority:1"                                                            json:"account_id"`
-	FullKeyText string    `gorm:"type:text;not null"                                                                                                    json:"fullkeytext"`
-	Algorithm   string    `gorm:"type:varchar(50);not null"                                                                                             json:"algorithm"`
-	Keybody     string    `gorm:"type:text;not null"                                                                                                    json:"keybody"`
-	Comment     string    `gorm:"type:varchar(255);not null"                                                                                            json:"comment"`
-	Fingerprint string    `gorm:"type:varchar(255);not null;uniqueIndex:idx_account_id_fingerprint,priority:2;index:idx_account_publickeys_fingerprint" json:"fingerprint"`
-	CreatedAt   time.Time `gorm:"default:current_timestamp(3)"                                                                                          json:"created_at"`
+	User           User           `gorm:"foreignKey:UserID;constraint:OnDelete:RESTRICT"`
+	Handlename     Handlename     `gorm:"foreignKey:HandlenameID;constraint:OnDelete:RESTRICT"`
+	AccountProfile AccountProfile `gorm:"foreignKey:AccountID"`
+	Repositories   []Repository   `gorm:"foreignKey:OwnerAccountID"`
 }
 
 // AccountProfile はアカウントの公開プロフィール情報を表します。

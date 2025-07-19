@@ -15,6 +15,7 @@ type User struct {
 	// リレーションシップ
 	UserCredential   UserCredential   `gorm:"foreignKey:UserID"`
 	UserRefreshToken UserRefreshToken `gorm:"foreignKey:UserID"`
+	UserPublicKeys   []UserPublicKey  `gorm:"foreignKey:UserID"`
 	Accounts         []Account        `gorm:"foreignKey:UserID"`
 }
 
@@ -33,4 +34,17 @@ type UserRefreshToken struct {
 	ExpiresAt          time.Time `gorm:"not null"                                                                 json:"expires_at"`
 	CreatedAt          time.Time `gorm:"default:current_timestamp(3)"                                             json:"created_at"`
 	UpdatedAt          time.Time `gorm:"default:current_timestamp(3);onUpdate:current_timestamp(3)"               json:"updated_at"`
+}
+
+// UserPublicKey はアカウントに紐づくSSH公開鍵を表します。
+type UserPublicKey struct {
+	ID          uint      `gorm:"primaryKey"                                                                                                            json:"id"`
+	UserID      uint      `gorm:"not null;uniqueIndex:idx_user_id_fingerprint,priority:1"                                                               json:"user_id"`
+	Name        string    `gorm:"type:varchar(255);not null"                                                                                            json:"name"`
+	FullKeyText string    `gorm:"type:text;not null"                                                                                                    json:"fullkeytext"`
+	Algorithm   string    `gorm:"type:varchar(50);not null"                                                                                             json:"algorithm"`
+	Keybody     string    `gorm:"type:text;not null"                                                                                                    json:"keybody"`
+	Comment     string    `gorm:"type:varchar(255);not null"                                                                                            json:"comment"`
+	Fingerprint string    `gorm:"type:varchar(255);not null;uniqueIndex:idx_user_id_fingerprint,priority:2;index:idx_user_publickeys_fingerprint" json:"fingerprint"`
+	CreatedAt   time.Time `gorm:"default:current_timestamp(3)"                                                                                          json:"created_at"`
 }
