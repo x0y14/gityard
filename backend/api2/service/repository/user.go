@@ -154,7 +154,8 @@ func GetPubKeyByFingerprint(db *gorm.DB, fingerprint string) (*model.UserPublicK
 func GetPubkeysByUserId(db *gorm.DB, userId uint, offset, limit int) ([]model.UserPublicKey, error) {
 	var pubkeys []model.UserPublicKey
 	if err := db.Model(&model.UserPublicKey{}).
-		Find(&pubkeys).Where(&model.UserPublicKey{UserID: userId}).
+		Where(&model.UserPublicKey{UserID: userId}).
+		Find(&pubkeys).
 		Offset(offset).Limit(limit).Error; err != nil {
 		return nil, err
 	}
