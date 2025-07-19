@@ -14,7 +14,7 @@ services:
     #             condition: service_healthy
     api-server2:
         build:
-            context: ./backend/api2/
+            context: ./backend/api/
             dockerfile: Dockerfile
         env_file:
             - ./.env

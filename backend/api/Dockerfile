@@ -1,16 +1,19 @@
-FROM python:3.13-slim-bookworm
+FROM golang:1.24-bookworm AS builder
 
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+WORKDIR /app
+COPY go.* ./
+RUN go mod download
 
-COPY . /project
+COPY . ./
+RUN go build -v -o apiserver
 
-WORKDIR /project
+FROM debian:bookworm-slim
+# RUN set -x && apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    # ca-certificates && \
+    # rm -rf /var/lib/apt/lists/*
 
-COPY docker-entrypoint.sh /
-RUN chmod +x /docker-entrypoint.sh
+# Copy the binary to the production image from the builder stage.
+COPY --from=builder /app/apiserver /app/apiserver
 
-RUN uv sync --locked
-
-EXPOSE 8000
-
-ENTRYPOINT [ "/docker-entrypoint.sh" ]
+# Run the web service on container startup.
+CMD ["/app/apiserver"]
