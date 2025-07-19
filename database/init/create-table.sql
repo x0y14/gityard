@@ -43,7 +43,7 @@ create table user_publickeys ( -- openssh format
 
     primary key(id),
     unique (user_id, fingerprint),
-    index idx_user_publickeys_fingerprint (fingerprint), --- for user's pubkey list
+    index idx_user_publickeys_fingerprint (fingerprint), -- for user's pubkey list
     foreign key(user_id) references users(id) on delete cascade
 );
 
