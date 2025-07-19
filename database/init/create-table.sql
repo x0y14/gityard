@@ -30,6 +30,22 @@ create table user_refresh_tokens (
     unique index uq_idx_users_hashed_refresh_token (hashed_refresh_token),
     foreign key(user_id) references users(id) on delete cascade -- ユーザ削除時に一緒に消す
 );
+create table user_publickeys ( -- openssh format
+    id bigint unsigned not null auto_increment,
+    user_id bigint unsigned not null, 
+    name varchar(255) not null,
+    fullkeytext text not null,
+    algorithm varchar(50) not null,
+    keybody text not null,
+    comment varchar(255) not null,
+    fingerprint varchar(255) not null,
+    created_at datetime default current_timestamp,
+
+    primary key(id),
+    unique (user_id, fingerprint),
+    index idx_user_publickeys_fingerprint (fingerprint), --- for user's pubkey list
+    foreign key(user_id) references users(id) on delete cascade
+);
 
 create table handlenames (
     id bigint unsigned not null auto_increment,
@@ -39,7 +55,6 @@ create table handlenames (
     primary key(id),
     unique index uq_idx_handlenames_handlename (handlename)
 );
-
 create table accounts (
     id bigint unsigned not null auto_increment,
     user_id bigint unsigned not null,
@@ -53,22 +68,6 @@ create table accounts (
     unique index uq_idx_accounts_handlename_id (handlename_id),
     foreign key(user_id) references users(id) on delete restrict,
     foreign key(handlename_id) references handlenames(id) on delete restrict
-);
-create table account_publickeys ( -- openssh format
-    id bigint unsigned not null auto_increment,
-    account_id bigint unsigned not null,
-    name varchar(255) not null,
-    fullkeytext text not null,
-    algorithm varchar(50) not null,
-    keybody text not null,
-    comment varchar(255) not null,
-    fingerprint varchar(255) not null,
-    created_at datetime default current_timestamp,
-
-    primary key(id),
-    unique (account_id, fingerprint),
-    index idx_account_publickeys_fingerprint (fingerprint), -- for account's pubkey list
-    foreign key(account_id) references accounts(id) on delete cascade -- account削除時に一緒に消す
 );
 create table account_profiles (
     account_id bigint unsigned not null,
