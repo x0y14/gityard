@@ -93,5 +93,5 @@ create table repositories (
 
     primary key(id),
     foreign key(owner_account_id) references accounts(id) on delete restrict,
-    unique index uq_idx_repositories_owner_name (owner_account_id, name) -- disallow same name per account
+    unique index uq_idx_repositories_owner_account_id_and_name (owner_account_id, name) -- disallow same name per account
 );
