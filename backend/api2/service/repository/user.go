@@ -121,3 +121,47 @@ func GetUserIdAndExpiresAtByRefreshToken(db *gorm.DB, refreshToken string) (*uin
 func DeleteUserRefreshToken(db *gorm.DB, userId uint) error {
 	return db.Delete(&model.UserRefreshToken{}, userId).Error
 }
+
+func CreatePublicKey(db *gorm.DB, userId uint, name, fullKeyText, algorithm, keyBody, comment, fingerprint string) (*model.UserPublicKey, error) {
+	pubkey := new(model.UserPublicKey)
+	pubkey.UserID = userId
+	pubkey.Name = name
+	pubkey.FullKeyText = fullKeyText
+	pubkey.Algorithm = algorithm
+	pubkey.Keybody = keyBody
+	pubkey.Comment = comment
+	pubkey.Fingerprint = fingerprint
+
+	if err := db.Create(&pubkey).Error; err != nil {
+		return nil, err
+	}
+
+	return pubkey, nil
+}
+
+func GetPubKeyByFingerprint(db *gorm.DB, fingerprint string) (*model.UserPublicKey, error) {
+	var pubkey model.UserPublicKey
+	if err := db.Model(&pubkey).Where(&model.UserPublicKey{Fingerprint: fingerprint}).First(&pubkey).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &pubkey, nil
+}
+
+func GetPubkeysByUserId(db *gorm.DB, userId uint, offset, limit int) ([]model.UserPublicKey, error) {
+	var pubkeys []model.UserPublicKey
+	if err := db.Model(&model.UserPublicKey{}).
+		Find(&pubkeys).Where(&model.UserPublicKey{UserID: userId}).
+		Offset(offset).Limit(limit).Error; err != nil {
+		return nil, err
+	}
+
+	return pubkeys, nil
+}
+
+func DeletePublicKeyByFingerprint(db *gorm.DB, userId uint, fingerprint string) error {
+	return db.Where(&model.UserPublicKey{UserID: userId, Fingerprint: fingerprint}).Delete(&model.UserPublicKey{}).Error
+}
