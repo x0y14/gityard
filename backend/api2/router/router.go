@@ -18,5 +18,12 @@ func SetupRoutes(app *fiber.App) {
 	auth.Post("/signup", middleware.WithoutAuthInfoProtection, handler.SignUp)
 	auth.Post("/login", middleware.WithoutAuthInfoProtection, handler.Login)
 	auth.Post("/logout", middleware.AuthHeaderProtection, handler.Logout)
-	auth.Post("/refresh", handler.Refresh)
+	auth.Post("/refresh", handler.Refresh) // クッキーの処理はmiddlewareじゃなくて関数内にある
+
+	settings := v1.Group("/settings", middleware.AuthHeaderProtection)
+	keys := settings.Group("/keys")
+	sshKeys := keys.Group("/ssh")
+	sshKeys.Post("/new", handler.RegisterSSHPublicKey)
+	sshKeys.Get("/list", handler.GetSSHPublicKeys)
+	sshKeys.Post("/delete", handler.DeleteSSHPubkeyByFingerprint)
 }

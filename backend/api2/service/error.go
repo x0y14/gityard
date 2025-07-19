@@ -56,3 +56,17 @@ type ErrExpiredRefreshTokenProvided struct {
 func (err *ErrExpiredRefreshTokenProvided) Error() string {
 	return fmt.Sprintf("Expired RefreshToken Provided")
 }
+
+type ErrInvalidPubkeyProvided struct {
+}
+
+func (err *ErrInvalidPubkeyProvided) Error() string {
+	return fmt.Sprintf("Invalid PublicKey Provided")
+}
+
+type ErrDuplicatesPubkeyFingerprint struct {
+}
+
+func (err *ErrDuplicatesPubkeyFingerprint) Error() string {
+	return fmt.Sprintf("Registered Fingerprint")
+}

@@ -13,3 +13,7 @@ func UnauthorizedError(c *fiber.Ctx) error {
 func BadRequestError(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"message": "bad request"})
 }
+
+func ConflictError(c *fiber.Ctx) error {
+	return c.Status(fiber.StatusConflict).JSON(fiber.Map{"message": "conflict"})
+}
