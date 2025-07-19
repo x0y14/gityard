@@ -92,6 +92,6 @@ create table repositories (
     updated_at datetime default current_timestamp on update current_timestamp,
 
     primary key(id),
-    foreign key(owner_account_id) references accounts(id) on delete set null, -- on delete, dont foget set is_private=1
+    foreign key(owner_account_id) references accounts(id) on delete cascade,
     unique index uq_idx_repositories_owner_name (owner_account_id, name) -- disallow same name per account
 );
